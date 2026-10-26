@@ -18,6 +18,11 @@ import {
   FileText,
   User,
   Coffee,
+  Moon,
+  BarChart3,
+  Filter,
+  Check,
+  Info,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { Button } from '@/components/ui/Button';
@@ -27,9 +32,15 @@ import {
   IObservation,
   IGoal,
   IUser,
+  ISomaticLog,
+  IABCLog,
+  IBatteryLog,
   ObservationCategory,
   GoalArea,
   GoalStatus,
+  SleepQuality,
+  AppetiteLevel,
+  DiscomfortLevel,
 } from '@/types';
 
 function TrackingContent() {
@@ -40,20 +51,44 @@ function TrackingContent() {
   const [currentUser, setCurrentUser] = useState<IUser | null>(null);
   const [children, setChildren] = useState<IChild[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>(initialChildId || '');
-  const [activeTab, setActiveTab] = useState<'observations' | 'goals' | 'wellbeing'>('observations');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'abc' | 'somatic' | 'goals' | 'reports'>('timeline');
 
   const [observations, setObservations] = useState<IObservation[]>([]);
+  const [abcLogs, setAbcLogs] = useState<IABCLog[]>([]);
+  const [somaticLogs, setSomaticLogs] = useState<ISomaticLog[]>([]);
+  const [batteryLogs, setBatteryLogs] = useState<IBatteryLog[]>([]);
   const [goals, setGoals] = useState<IGoal[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal nueva observación
+  // Filtro de categoría en la línea de tiempo
+  const [timelineFilter, setTimelineFilter] = useState<'all' | 'obs' | 'abc' | 'somatic' | 'battery'>('all');
+
+  // Modal nueva observación general
   const [showObsModal, setShowObsModal] = useState(false);
   const [obsCategory, setObsCategory] = useState<ObservationCategory>('bienestar');
   const [obsDescription, setObsDescription] = useState('');
   const [obsSupports, setObsSupports] = useState('');
   const [obsOutcome, setObsOutcome] = useState('');
 
-  // Modal nuevo objetivo
+  // Modal nuevo registro ABC neuroafirmativo
+  const [showABCModal, setShowABCModal] = useState(false);
+  const [abcAntecedent, setAbcAntecedent] = useState('');
+  const [abcBehavior, setAbcBehavior] = useState('');
+  const [abcUnmetNeed, setAbcUnmetNeed] = useState('');
+  const [abcSupport, setAbcSupport] = useState('');
+  const [abcOutcome, setAbcOutcome] = useState('');
+
+  // Modal nueva bitácora somática
+  const [showSomaticModal, setShowSomaticModal] = useState(false);
+  const [somaticSleepHours, setSomaticSleepHours] = useState<number>(8);
+  const [somaticSleepQuality, setSomaticSleepQuality] = useState<SleepQuality>('bueno');
+  const [somaticAppetite, setSomaticAppetite] = useState<AppetiteLevel>('normal');
+  const [somaticDiscomfort, setSomaticDiscomfort] = useState<DiscomfortLevel>('ninguno');
+  const [somaticDiscomfortNotes, setSomaticDiscomfortNotes] = useState('');
+  const [somaticWellbeingNote, setSomaticWellbeingNote] = useState('');
+
+  // Modal nuevo objetivo PEI/IEP
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalDesc, setGoalDesc] = useState('');
   const [goalArea, setGoalArea] = useState<GoalArea>('comunicacion');
@@ -69,7 +104,7 @@ function TrackingContent() {
 
   useEffect(() => {
     if (selectedChildId) {
-      loadTrackingData(selectedChildId);
+      loadAllTrackingData(selectedChildId);
     }
   }, [selectedChildId]);
 
@@ -99,21 +134,43 @@ function TrackingContent() {
     }
   };
 
-  const loadTrackingData = async (childId: string) => {
+  const loadAllTrackingData = async (childId: string) => {
     try {
       // 1. Observaciones
-      const obsRes = await fetch(`/api/observations?childId=${childId}`);
-      if (obsRes.ok) {
-        const obsData = await obsRes.json();
-        setObservations(obsData.observations || []);
-      }
+      fetch(`/api/observations?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setObservations(d.observations || []))
+        .catch((e) => console.error(e));
 
-      // 2. Objetivos
-      const goalRes = await fetch(`/api/goals?childId=${childId}`);
-      if (goalRes.ok) {
-        const goalData = await goalRes.json();
-        setGoals(goalData.goals || []);
-      }
+      // 2. Registros ABC
+      fetch(`/api/tracking/abc?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setAbcLogs(d.logs || []))
+        .catch((e) => console.error(e));
+
+      // 3. Bitácora somática
+      fetch(`/api/tracking/somatic?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setSomaticLogs(d.logs || []))
+        .catch((e) => console.error(e));
+
+      // 4. Batería sensorial
+      fetch(`/api/tracking/battery?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setBatteryLogs(d.logs || []))
+        .catch((e) => console.error(e));
+
+      // 5. Objetivos
+      fetch(`/api/goals?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setGoals(d.goals || []))
+        .catch((e) => console.error(e));
+
+      // 6. Resumen descriptivo
+      fetch(`/api/tracking/summary?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setSummary(d.summary || null))
+        .catch((e) => console.error(e));
     } catch (e) {
       console.error(e);
     }
@@ -141,7 +198,69 @@ function TrackingContent() {
         setObsDescription('');
         setObsSupports('');
         setObsOutcome('');
-        loadTrackingData(selectedChildId);
+        loadAllTrackingData(selectedChildId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateABCLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChildId || !abcAntecedent.trim() || !abcBehavior.trim() || !abcSupport.trim()) return;
+
+    try {
+      const res = await fetch('/api/tracking/abc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          childId: selectedChildId,
+          antecedentContext: abcAntecedent,
+          observedBehavior: abcBehavior,
+          unmetNeed: abcUnmetNeed,
+          supportProvided: abcSupport,
+          outcome: abcOutcome || 'Regulación alcanzada con apoyo',
+        }),
+      });
+
+      if (res.ok) {
+        setShowABCModal(false);
+        setAbcAntecedent('');
+        setAbcBehavior('');
+        setAbcUnmetNeed('');
+        setAbcSupport('');
+        setAbcOutcome('');
+        loadAllTrackingData(selectedChildId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateSomaticLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChildId) return;
+
+    try {
+      const res = await fetch('/api/tracking/somatic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          childId: selectedChildId,
+          sleepHours: somaticSleepHours,
+          sleepQuality: somaticSleepQuality,
+          appetite: somaticAppetite,
+          physicalDiscomfort: somaticDiscomfort,
+          discomfortNotes: somaticDiscomfortNotes,
+          wellbeingNote: somaticWellbeingNote,
+        }),
+      });
+
+      if (res.ok) {
+        setShowSomaticModal(false);
+        setSomaticDiscomfortNotes('');
+        setSomaticWellbeingNote('');
+        loadAllTrackingData(selectedChildId);
       }
     } catch (e) {
       console.error(e);
@@ -168,7 +287,7 @@ function TrackingContent() {
         setShowGoalModal(false);
         setGoalDesc('');
         setGoalCriteria('');
-        loadTrackingData(selectedChildId);
+        loadAllTrackingData(selectedChildId);
       }
     } catch (e) {
       console.error(e);
@@ -190,7 +309,7 @@ function TrackingContent() {
       if (res.ok) {
         setSelectedGoalForNote(null);
         setProgressNoteText('');
-        loadTrackingData(selectedChildId);
+        loadAllTrackingData(selectedChildId);
       }
     } catch (e) {
       console.error(e);
@@ -205,21 +324,144 @@ function TrackingContent() {
         body: JSON.stringify({ status }),
       });
       if (res.ok) {
-        loadTrackingData(selectedChildId);
+        loadAllTrackingData(selectedChildId);
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const categoryBadges: Record<ObservationCategory, { label: string; variant: 'info' | 'warning' | 'success' | 'neutral' }> = {
-    bienestar: { label: '🌿 Bienestar', variant: 'success' },
-    sensorial: { label: '💡 Sensorial', variant: 'warning' },
-    descanso: { label: '☕ Descanso / Sueño', variant: 'info' },
-    conductual: { label: '🧩 Autorregulación', variant: 'neutral' },
-    social: { label: '👥 Interacción', variant: 'info' },
-    pedagogico: { label: '📚 Pedagógico', variant: 'warning' },
-  };
+  // Construir línea temporal unificada
+  interface TimelineItem {
+    id: string;
+    type: 'obs' | 'abc' | 'somatic' | 'battery';
+    date: Date;
+    title: string;
+    subtitle?: string;
+    badge: { label: string; bg: string; text: string };
+    author?: string;
+    content: React.ReactNode;
+  }
+
+  const timelineItems: TimelineItem[] = [];
+
+  // Agregar observaciones
+  if (timelineFilter === 'all' || timelineFilter === 'obs') {
+    observations.forEach((o) => {
+      timelineItems.push({
+        id: `obs-${o._id}`,
+        type: 'obs',
+        date: new Date(o.date),
+        title: `Observación: ${o.category.toUpperCase()}`,
+        badge: { label: 'Observación', bg: 'bg-sky-100', text: 'text-sky-800' },
+        author: o.author?.name || 'Equipo',
+        content: (
+          <div className="space-y-1 text-xs">
+            <p className="text-slate-800 font-medium">{o.description}</p>
+            {o.supportsUsed.length > 0 && (
+              <p className="text-slate-500 font-bold">
+                💡 Apoyos: {o.supportsUsed.join(', ')}
+              </p>
+            )}
+            {o.observedOutcome && (
+              <p className="text-emerald-700 font-bold">⭐ Resultado: {o.observedOutcome}</p>
+            )}
+          </div>
+        ),
+      });
+    });
+  }
+
+  // Agregar registros ABC
+  if (timelineFilter === 'all' || timelineFilter === 'abc') {
+    abcLogs.forEach((a) => {
+      timelineItems.push({
+        id: `abc-${a._id}`,
+        type: 'abc',
+        date: new Date(a.date),
+        title: 'Registro ABC Contextual',
+        badge: { label: 'Registro ABC', bg: 'bg-purple-100', text: 'text-purple-800' },
+        author: a.author?.name || 'Profesional/Tutor',
+        content: (
+          <div className="space-y-1.5 text-xs">
+            <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+              <strong className="text-slate-700">A (Antecedente/Entorno):</strong> {a.antecedentContext}
+            </div>
+            <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+              <strong className="text-slate-700">B (Expresión/Conducta):</strong> {a.observedBehavior}
+              {a.unmetNeed && <span className="text-amber-800 block mt-0.5">⚠️ Necesidad no atendida: {a.unmetNeed}</span>}
+            </div>
+            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950">
+              <strong>C (Apoyo y Resultado):</strong> {a.supportProvided} → <em>{a.outcome}</em>
+            </div>
+          </div>
+        ),
+      });
+    });
+  }
+
+  // Agregar bitácora somática
+  if (timelineFilter === 'all' || timelineFilter === 'somatic') {
+    somaticLogs.forEach((s) => {
+      timelineItems.push({
+        id: `som-${s._id}`,
+        type: 'somatic',
+        date: new Date(s.date),
+        title: 'Bitácora Fisiológica y Somática',
+        badge: { label: 'Somático', bg: 'bg-teal-100', text: 'text-teal-800' },
+        author: s.author?.name || 'Familia',
+        content: (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="p-2 bg-slate-50 rounded-xl">
+              <span className="text-slate-400 block font-bold">Sueño:</span>
+              <span className="font-black text-slate-800">{s.sleepHours ?? 'N/A'} hrs ({s.sleepQuality})</span>
+            </div>
+            <div className="p-2 bg-slate-50 rounded-xl">
+              <span className="text-slate-400 block font-bold">Apetito:</span>
+              <span className="font-black text-slate-800 capitalize">{s.appetite}</span>
+            </div>
+            <div className="p-2 bg-slate-50 rounded-xl">
+              <span className="text-slate-400 block font-bold">Molestia física:</span>
+              <span className="font-black text-slate-800 capitalize">{s.physicalDiscomfort}</span>
+            </div>
+            <div className="p-2 bg-slate-50 rounded-xl">
+              <span className="text-slate-400 block font-bold">Bienestar:</span>
+              <span className="font-bold text-slate-800">{s.wellbeingNote || 'Normal'}</span>
+            </div>
+          </div>
+        ),
+      });
+    });
+  }
+
+  // Agregar batería sensorial
+  if (timelineFilter === 'all' || timelineFilter === 'battery') {
+    batteryLogs.forEach((b) => {
+      const batteryBadges: Record<string, { label: string; emoji: string }> = {
+        comodo: { label: 'Cómodo y tranquilo', emoji: '😊' },
+        cansado: { label: 'Un poco cansado', emoji: '🥱' },
+        pausa: { label: 'Necesita una pausa', emoji: '☕' },
+        sobrecarga: { label: 'Muchos estímulos / Sobrecarga', emoji: '⚡' },
+      };
+      const info = batteryBadges[b.level] || { label: b.level, emoji: '🌱' };
+      timelineItems.push({
+        id: `bat-${b._id}`,
+        type: 'battery',
+        date: new Date(b.createdAt),
+        title: `Termómetro Sensorial: ${info.emoji} ${info.label}`,
+        badge: { label: 'Termómetro', bg: 'bg-amber-100', text: 'text-amber-800' },
+        author: b.authorName || (b.registeredBy === 'child' ? 'Niño (Autorregistro)' : 'Adulto'),
+        content: (
+          <p className="text-xs text-slate-600 font-medium">
+            {b.note || 'Reporte de estado de energía y carga sensorial.'}
+          </p>
+        ),
+      });
+    });
+  }
+
+  // Ordenar cronológicamente descendente
+  timelineItems.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   const areaLabels: Record<GoalArea, string> = {
     comunicacion: '🗣️ Comunicación',
@@ -234,15 +476,15 @@ function TrackingContent() {
       <Navbar user={currentUser || undefined} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Cabecera y Selector de Niño */}
+        {/* Cabecera Principal */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
               <Activity className="w-7 h-7 text-sky-600" />
-              <span>Línea de Seguimiento y Objetivos</span>
+              <span>Seguimiento y Evolución</span>
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              Registro descriptivo de evolución, apoyos eficaces y metas consensuadas entre familia y equipo de apoyo.
+              Línea temporal enriquecida, registro ABC neuroafirmativo, bitácora fisiológica y evolución descriptiva.
             </p>
           </div>
 
@@ -261,112 +503,192 @@ function TrackingContent() {
               </select>
             )}
 
-            <Button
-              onClick={() => {
-                if (activeTab === 'goals') setShowGoalModal(true);
-                else setShowObsModal(true);
-              }}
-              variant="primary"
-              size="md"
-              className="font-bold gap-1.5 shadow-sm whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{activeTab === 'goals' ? 'Nuevo Objetivo' : 'Nueva Nota'}</span>
-            </Button>
+            {/* Botón de acción contextual según la pestaña */}
+            {activeTab === 'timeline' && (
+              <Button
+                onClick={() => setShowObsModal(true)}
+                variant="primary"
+                size="md"
+                className="font-bold gap-1.5 shadow-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nueva Observación</span>
+              </Button>
+            )}
+
+            {activeTab === 'abc' && (
+              <Button
+                onClick={() => setShowABCModal(true)}
+                variant="primary"
+                size="md"
+                className="font-bold gap-1.5 shadow-sm whitespace-nowrap bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Registro ABC</span>
+              </Button>
+            )}
+
+            {activeTab === 'somatic' && (
+              <Button
+                onClick={() => setShowSomaticModal(true)}
+                variant="primary"
+                size="md"
+                className="font-bold gap-1.5 shadow-sm whitespace-nowrap bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Registrar Día / Sueño</span>
+              </Button>
+            )}
+
+            {activeTab === 'goals' && (
+              <Button
+                onClick={() => setShowGoalModal(true)}
+                variant="primary"
+                size="md"
+                className="font-bold gap-1.5 shadow-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Objetivo</span>
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Pestañas de Navegación de Seguimiento */}
-        <div className="flex border-b border-slate-200 space-x-6">
+        {/* Pestañas de Navegación de Seguimiento y Evolución */}
+        <div className="flex border-b border-slate-200 space-x-6 overflow-x-auto pb-1">
           <button
-            onClick={() => setActiveTab('observations')}
-            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === 'observations'
+            onClick={() => setActiveTab('timeline')}
+            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'timeline'
                 ? 'border-sky-600 text-sky-800'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            <FileText className="w-4 h-4" />
-            <span>Línea de Tiempo de Observaciones ({observations.length})</span>
+            <Clock className="w-4 h-4" />
+            <span>Línea Temporal de Registros ({timelineItems.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('abc')}
+            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'abc'
+                ? 'border-purple-600 text-purple-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Shield className="w-4 h-4" />
+            <span>Registro ABC Contextual ({abcLogs.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('somatic')}
+            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'somatic'
+                ? 'border-teal-600 text-teal-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Moon className="w-4 h-4" />
+            <span>Bitácora Somática y Sueño ({somaticLogs.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('goals')}
-            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'goals'
                 ? 'border-sky-600 text-sky-800'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
             <Target className="w-4 h-4" />
-            <span>Objetivos Individualizados ({goals.length})</span>
+            <span>Objetivos PEI / IEP ({goals.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`pb-3 text-sm font-black border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'reports'
+                ? 'border-emerald-600 text-emerald-800'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Evolución y Reportes Descriptivos</span>
           </button>
         </div>
 
-        {/* CONTENIDO PESTAÑA 1: OBSERVACIONES Y BIENESTAR */}
-        {activeTab === 'observations' && (
-          <section className="space-y-4">
-            {observations.length === 0 ? (
+        {/* PESTAÑA 1: LÍNEA TEMPORAL DE REGISTROS (UNIFICADA) */}
+        {activeTab === 'timeline' && (
+          <section className="space-y-6">
+            {/* Filtros de la línea temporal */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold">
+              <span className="text-slate-400 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5" /> Filtrar:
+              </span>
+              {(['all', 'obs', 'abc', 'somatic', 'battery'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setTimelineFilter(f)}
+                  className={`px-3 py-1.5 rounded-full border transition-all ${
+                    timelineFilter === f
+                      ? 'bg-slate-800 text-white border-slate-800 shadow-xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {f === 'all' && 'Todos los eventos'}
+                  {f === 'obs' && 'Observaciones'}
+                  {f === 'abc' && 'Registros ABC'}
+                  {f === 'somatic' && 'Somático / Sueño'}
+                  {f === 'battery' && 'Termómetro Sensorial'}
+                </button>
+              ))}
+            </div>
+
+            {timelineItems.length === 0 ? (
               <div className="p-12 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-500">
-                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <h3 className="font-bold text-slate-800 text-base">No hay observaciones registradas aún</h3>
+                <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <h3 className="font-bold text-slate-800 text-base">No hay registros en la línea temporal</h3>
                 <p className="text-xs text-slate-400 mt-1 mb-4">
-                  Registra situaciones observadas, apoyos que resultaron útiles o momentos de sobrecarga.
+                  Registra observaciones, entradas ABC o bitácoras somáticas para ver la evolución cronológica.
                 </p>
                 <Button onClick={() => setShowObsModal(true)} variant="primary" size="sm">
-                  Agregar Primera Observación
+                  Agregar Primera Entrada
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {observations.map((obs) => (
-                  <div
-                    key={obs._id}
-                    className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={categoryBadges[obs.category]?.variant || 'neutral'}>
-                          {categoryBadges[obs.category]?.label || obs.category}
-                        </Badge>
-                        <span className="text-xs font-bold text-slate-500">
-                          {new Date(obs.date).toLocaleDateString('es-ES', {
+              <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-200 space-y-6">
+                {timelineItems.map((item) => (
+                  <div key={item.id} className="relative group">
+                    {/* Punto indicador de la línea de tiempo */}
+                    <div className="absolute -left-[31px] sm:-left-[39px] top-4 w-4 h-4 rounded-full bg-white border-4 border-sky-500 shadow-xs group-hover:scale-125 transition-transform" />
+
+                    <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full ${item.badge.bg} ${item.badge.text}`}
+                          >
+                            {item.badge.label}
+                          </span>
+                          <h4 className="font-black text-slate-900 text-sm sm:text-base">{item.title}</h4>
+                        </div>
+                        <span className="text-xs text-slate-400 font-bold">
+                          {item.date.toLocaleDateString('es-ES', {
+                            weekday: 'short',
                             day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
                           })}
                         </span>
                       </div>
 
-                      <div className="text-xs text-slate-400 font-medium">
-                        Por: <span className="font-bold text-slate-700">{obs.author?.name || 'Equipo'}</span> (
-                        {obs.author?.role})
+                      {item.content}
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                        <span>Registrado por: {item.author}</span>
                       </div>
                     </div>
-
-                    <p className="text-sm font-medium text-slate-800 leading-relaxed">
-                      {obs.description}
-                    </p>
-
-                    {obs.supportsUsed?.length > 0 && (
-                      <div className="flex items-center gap-2 pt-2 text-xs">
-                        <span className="font-bold text-slate-500">Apoyos utilizados:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {obs.supportsUsed.map((s, i) => (
-                            <span key={i} className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-lg border border-emerald-100 font-semibold">
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {obs.observedOutcome && (
-                      <div className="p-3 bg-slate-50 rounded-2xl text-xs text-slate-700">
-                        <span className="font-bold">Resultado observado: </span>
-                        <span>{obs.observedOutcome}</span>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -374,129 +696,451 @@ function TrackingContent() {
           </section>
         )}
 
-        {/* CONTENIDO PESTAÑA 2: OBJETIVOS INDIVIDUALIZADOS */}
-        {activeTab === 'goals' && (
-          <section className="space-y-4">
-            {goals.length === 0 ? (
-              <div className="p-12 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-500">
-                <Target className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <h3 className="font-bold text-slate-800 text-base">No hay objetivos definidos</h3>
-                <p className="text-xs text-slate-400 mt-1 mb-4">
-                  Crea metas observables en comunicación, autonomía o regulación para orientar el trabajo conjunto.
+        {/* PESTAÑA 2: REGISTRO ABC NEUROAFIRMATIVO */}
+        {activeTab === 'abc' && (
+          <section className="space-y-6">
+            <div className="p-5 rounded-3xl bg-purple-50/70 border border-purple-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-black text-purple-950 text-lg">
+                  Registro ABC Contextual y Neuroafirmativo
+                </h3>
+                <p className="text-xs text-purple-900 mt-1 max-w-2xl font-medium">
+                  Este registro no etiqueta conductas como «problemáticas». Se enfoca en identificar barreras sensoriales o del entorno (A), comprender la necesidad comunicativa subyacente (B) y registrar los apoyos eficaces que restablecieron el bienestar (C).
                 </p>
-                <Button onClick={() => setShowGoalModal(true)} variant="primary" size="sm">
-                  Proponer Objetivo
+              </div>
+
+              <Button
+                onClick={() => setShowABCModal(true)}
+                variant="primary"
+                size="md"
+                className="font-bold bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Registro ABC</span>
+              </Button>
+            </div>
+
+            {abcLogs.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-500">
+                <Shield className="w-10 h-10 text-purple-300 mx-auto mb-2" />
+                <h4 className="font-bold text-slate-800 text-base">No hay registros ABC aún</h4>
+                <p className="text-xs text-slate-400 mt-1 mb-4">
+                  Registra un episodio para analizar factores ambientales y apoyos que funcionaron.
+                </p>
+                <Button onClick={() => setShowABCModal(true)} variant="primary" size="sm">
+                  Crear Registro ABC
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {goals.map((goal) => {
-                  const isReached = goal.status === 'alcanzado';
-                  return (
-                    <div
-                      key={goal._id}
-                      className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-black text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-                            {areaLabels[goal.area] || goal.area}
-                          </span>
+              <div className="grid grid-cols-1 gap-4">
+                {abcLogs.map((log) => (
+                  <div
+                    key={log._id}
+                    className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-purple-600" />
+                        <h4 className="font-black text-slate-800 text-sm">
+                          Episodio del {new Date(log.date).toLocaleDateString('es-ES', { dateStyle: 'long' })}
+                        </h4>
+                      </div>
+                      <span className="text-xs text-slate-400 font-bold">
+                        Por: {log.author?.name || 'Profesional/Tutor'}
+                      </span>
+                    </div>
 
-                          <Badge
-                            variant={
-                              goal.status === 'alcanzado'
-                                ? 'success'
-                                : goal.status === 'en_progreso'
-                                ? 'info'
-                                : 'warning'
-                            }
-                          >
-                            {goal.status.replace('_', ' ')}
-                          </Badge>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* A */}
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                        <span className="text-[11px] font-black text-purple-700 uppercase tracking-wider block">
+                          A • Antecedente / Entorno
+                        </span>
+                        <p className="text-xs text-slate-700 font-medium leading-relaxed">
+                          {log.antecedentContext}
+                        </p>
+                      </div>
 
-                        <h3 className="text-lg font-black text-slate-900 leading-snug">
-                          {goal.description}
-                        </h3>
-
-                        <div className="mt-3 p-3 bg-sky-50 rounded-2xl border border-sky-100 text-xs">
-                          <span className="font-bold text-sky-900">Criterio observable: </span>
-                          <span className="text-sky-800">{goal.criteria}</span>
-                        </div>
-
-                        {/* Notas de progreso acumuladas */}
-                        {goal.progressNotes?.length > 0 && (
-                          <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase">
-                              Notas de Avance ({goal.progressNotes.length}):
-                            </span>
-                            <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                              {goal.progressNotes.map((pn, i) => (
-                                <div key={i} className="text-xs p-2 bg-slate-50 rounded-xl text-slate-700">
-                                  <span className="font-bold">{new Date(pn.date).toLocaleDateString('es-ES')}: </span>
-                                  <span>{pn.note}</span>
-                                </div>
-                              ))}
-                            </div>
+                      {/* B */}
+                      <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+                        <span className="text-[11px] font-black text-amber-800 uppercase tracking-wider block">
+                          B • Expresión o Conducta
+                        </span>
+                        <p className="text-xs text-slate-800 font-medium leading-relaxed">
+                          {log.observedBehavior}
+                        </p>
+                        {log.unmetNeed && (
+                          <div className="mt-2 text-[11px] font-bold text-amber-900 bg-amber-100 p-1.5 rounded-lg">
+                            🔍 Necesidad: {log.unmetNeed}
                           </div>
                         )}
                       </div>
 
-                      {/* Acciones del objetivo */}
-                      <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
-                        {selectedGoalForNote === goal._id ? (
-                          <div className="space-y-2">
-                            <textarea
-                              rows={2}
-                              value={progressNoteText}
-                              onChange={(e) => setProgressNoteText(e.target.value)}
-                              placeholder="Escribe la nota de avance o ajuste..."
-                              className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500"
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => setSelectedGoalForNote(null)}
-                                className="text-xs font-bold text-slate-400 hover:text-slate-600 px-3 py-1.5"
-                              >
-                                Cancelar
-                              </button>
-                              <Button
-                                onClick={() => handleAddProgressNote(goal._id)}
-                                variant="primary"
-                                size="sm"
-                                className="font-bold text-xs"
-                              >
-                                Guardar Nota
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <button
-                              onClick={() => setSelectedGoalForNote(goal._id)}
-                              className="text-xs font-bold text-sky-700 hover:text-sky-900 hover:underline flex items-center gap-1"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Agregar nota de evolución</span>
-                            </button>
+                      {/* C */}
+                      <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-1">
+                        <span className="text-[11px] font-black text-emerald-800 uppercase tracking-wider block">
+                          C • Apoyo Brindado y Resultado
+                        </span>
+                        <p className="text-xs text-emerald-950 font-medium leading-relaxed">
+                          <strong>Apoyo:</strong> {log.supportProvided}
+                        </p>
+                        <p className="text-xs text-emerald-900 font-bold mt-1">
+                          <strong>Resultado:</strong> {log.outcome}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-                            {!isReached && (
-                              <button
-                                onClick={() => handleUpdateGoalStatus(goal._id, 'alcanzado')}
-                                className="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-xl transition-colors"
-                              >
-                                Marcar Alcanzado
-                              </button>
-                            )}
-                          </div>
+        {/* PESTAÑA 3: BITÁCORA FISIOLÓGICA Y SOMÁTICA */}
+        {activeTab === 'somatic' && (
+          <section className="space-y-6">
+            <div className="p-5 rounded-3xl bg-teal-50/70 border border-teal-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-black text-teal-950 text-lg">
+                  Bitácora Fisiológica y Somática
+                </h3>
+                <p className="text-xs text-teal-900 mt-1 max-w-2xl font-medium">
+                  Monitoreo no invasivo de descanso, sueño, molestias físicas y apetito. Permite entender el estado basal del niño sin hacer diagnósticos automáticos ni juicios apresurados.
+                </p>
+              </div>
+
+              <Button
+                onClick={() => setShowSomaticModal(true)}
+                variant="primary"
+                size="md"
+                className="font-bold bg-teal-600 hover:bg-teal-700 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Registrar Entrada Somática</span>
+              </Button>
+            </div>
+
+            {somaticLogs.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-500">
+                <Moon className="w-10 h-10 text-teal-300 mx-auto mb-2" />
+                <h4 className="font-bold text-slate-800 text-base">No hay registros somáticos aún</h4>
+                <p className="text-xs text-slate-400 mt-1 mb-4">
+                  Registra cómo durmió el niño anoche y su confort físico general.
+                </p>
+                <Button onClick={() => setShowSomaticModal(true)} variant="primary" size="sm">
+                  Registrar Primer Día
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {somaticLogs.map((log) => (
+                  <div
+                    key={log._id}
+                    className="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span className="text-xs font-black text-slate-800">
+                          {new Date(log.date).toLocaleDateString('es-ES', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </span>
+                        <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">
+                          Calidad: {log.sleepQuality}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-bold">Horas de sueño:</span>
+                          <span className="font-black text-slate-800">{log.sleepHours ?? 'N/A'} hrs</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-bold">Apetito:</span>
+                          <span className="font-black text-slate-800 capitalize">{log.appetite}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500 font-bold">Molestia o dolor:</span>
+                          <span className="font-black text-slate-800 capitalize">{log.physicalDiscomfort}</span>
+                        </div>
+                        {log.discomfortNotes && (
+                          <p className="p-2 rounded-xl bg-rose-50 text-rose-900 text-[11px] font-medium">
+                            ⚠️ {log.discomfortNotes}
+                          </p>
+                        )}
+                        {log.wellbeingNote && (
+                          <p className="text-slate-600 italic mt-1 font-medium">{log.wellbeingNote}</p>
                         )}
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-400 font-semibold">
+                      Por: {log.author?.name || 'Familia'}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
+          </section>
+        )}
+
+        {/* PESTAÑA 4: OBJETIVOS PEI/IEP */}
+        {activeTab === 'goals' && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between bg-white p-5 rounded-3xl border border-slate-200">
+              <div>
+                <h3 className="font-black text-slate-800 text-lg">
+                  Objetivos Individualizados (PEI / IEP)
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Metas acordadas colaborativamente entre terapeutas, docentes y familia.
+                </p>
+              </div>
+
+              <Button onClick={() => setShowGoalModal(true)} variant="primary" size="md">
+                <Plus className="w-4 h-4 mr-1" />
+                <span>Nuevo Objetivo</span>
+              </Button>
+            </div>
+
+            {goals.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-500">
+                <Target className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <h4 className="font-bold text-slate-800 text-base">No hay objetivos configurados</h4>
+                <p className="text-xs text-slate-400 mt-1 mb-4">
+                  Define metas funcionales de autonomía, comunicación o autorregulación.
+                </p>
+                <Button onClick={() => setShowGoalModal(true)} variant="primary" size="sm">
+                  Crear Primer Objetivo
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {goals.map((g) => (
+                  <div
+                    key={g._id}
+                    className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <span className="text-xs font-black text-sky-800 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100">
+                          {areaLabels[g.area] || g.area}
+                        </span>
+
+                        <select
+                          value={g.status}
+                          onChange={(e) => handleUpdateGoalStatus(g._id, e.target.value as GoalStatus)}
+                          className="text-xs font-black px-2.5 py-1 rounded-xl border border-slate-300 bg-white"
+                        >
+                          <option value="propuesto">Propuesto</option>
+                          <option value="en_progreso">En Progreso</option>
+                          <option value="alcanzado">Alcanzado 🎉</option>
+                          <option value="pausado">Pausado</option>
+                        </select>
+                      </div>
+
+                      <h4 className="font-black text-slate-900 text-base mt-2">{g.description}</h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        <strong>Criterio de logro:</strong> {g.criteria}
+                      </p>
+
+                      {/* Notas de avance */}
+                      <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                          Notas de avance ({g.progressNotes?.length || 0}):
+                        </span>
+                        {g.progressNotes && g.progressNotes.length > 0 ? (
+                          <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                            {g.progressNotes.map((pn, i) => (
+                              <div key={i} className="text-xs p-2 rounded-xl bg-slate-50 border border-slate-100">
+                                <p className="text-slate-700 font-medium">{pn.note}</p>
+                                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">
+                                  {new Date(pn.date).toLocaleDateString()} • {pn.authorName || 'Equipo'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">Sin notas de progreso aún.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-100">
+                      {selectedGoalForNote === g._id ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={progressNoteText}
+                            onChange={(e) => setProgressNoteText(e.target.value)}
+                            placeholder="Escribe el avance observado..."
+                            className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setSelectedGoalForNote(null)}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleAddProgressNote(g._id)}
+                            >
+                              Guardar Nota
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedGoalForNote(g._id)}
+                          className="text-xs font-bold text-sky-700 hover:text-sky-900 flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Agregar nota de avance</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* PESTAÑA 5: EVOLUCIÓN Y REPORTES DESCRIPTIVOS (SIN CAUSALIDAD FALSA) */}
+        {activeTab === 'reports' && (
+          <section className="space-y-6">
+            {/* Aviso ético y clínico explícito */}
+            <div className="p-5 rounded-3xl bg-amber-50 border-2 border-amber-300 flex items-start gap-3">
+              <Info className="w-6 h-6 text-amber-700 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-black text-amber-950">
+                  Compromiso Ético: Gráficos puramente descriptivos
+                </h4>
+                <p className="text-xs text-amber-900/90 mt-1 font-medium leading-relaxed">
+                  <strong>Una correlación no demuestra causalidad.</strong> Si el sistema muestra menos horas de sueño en días con desafíos en la escuela, esto no implica que uno cause automáticamente al otro. Estos gráficos ofrecen tendencias de apoyo para el diálogo clínico y educativo, evitando diagnósticos automatizados.
+                </p>
+              </div>
+            </div>
+
+            {/* Tarjetas de Métricas Descriptivas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                  Promedio de Sueño
+                </span>
+                <p className="text-3xl font-black text-slate-900 mt-2">
+                  {summary?.somatic?.avgSleepHours ? `${summary.somatic.avgSleepHours} hrs` : 'N/A'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  En los últimos {summary?.somatic?.totalLogs || 0} registros
+                </p>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                  Estados Sensoriales
+                </span>
+                <p className="text-3xl font-black text-emerald-600 mt-2">
+                  {summary?.sensoryBattery?.distribution?.comodo || 0}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Reportes en estado "Cómodo y tranquilo"
+                </p>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                  Sobrecargas Detectadas
+                </span>
+                <p className="text-3xl font-black text-rose-500 mt-2">
+                  {summary?.sensoryBattery?.distribution?.sobrecarga || 0}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Momentos atendidos con apoyo
+                </p>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                  Registros ABC
+                </span>
+                <p className="text-3xl font-black text-purple-600 mt-2">
+                  {summary?.abc?.totalLogs || 0}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Análisis contextuales completados
+                </p>
+              </div>
+            </div>
+
+            {/* Desglose visual de Calidad de Sueño y Estados de Batería */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Desglose de sueño */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                <h4 className="font-black text-slate-800 text-base">
+                  Distribución de Calidad de Sueño Registrada
+                </h4>
+                <div className="space-y-3">
+                  {[
+                    { key: 'muy_bueno', label: 'Muy bueno / Reparador', color: 'bg-emerald-500' },
+                    { key: 'bueno', label: 'Bueno', color: 'bg-teal-500' },
+                    { key: 'regular', label: 'Regular', color: 'bg-amber-500' },
+                    { key: 'inquieto', label: 'Inquieto / Despertares', color: 'bg-rose-500' },
+                  ].map((item) => {
+                    const count = summary?.somatic?.sleepQualityCounts?.[item.key] || 0;
+                    const total = summary?.somatic?.totalLogs || 1;
+                    const pct = Math.round((count / (total || 1)) * 100);
+                    return (
+                      <div key={item.key}>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className="text-slate-700">{item.label}</span>
+                          <span className="text-slate-500">{count} días ({pct}%)</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div className={`h-full ${item.color}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Desglose de estados sensoriales */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                <h4 className="font-black text-slate-800 text-base">
+                  Frecuencia de Estados en el Termómetro Sensorial
+                </h4>
+                <div className="space-y-3">
+                  {[
+                    { key: 'comodo', label: '😊 Cómodo y tranquilo', color: 'bg-emerald-500' },
+                    { key: 'cansado', label: '🥱 Un poco cansado', color: 'bg-amber-500' },
+                    { key: 'pausa', label: '☕ Necesita una pausa', color: 'bg-sky-500' },
+                    { key: 'sobrecarga', label: '⚡ Demasiados estímulos', color: 'bg-rose-500' },
+                  ].map((item) => {
+                    const count = summary?.sensoryBattery?.distribution?.[item.key] || 0;
+                    const total = summary?.sensoryBattery?.totalEntries || 1;
+                    const pct = Math.round((count / (total || 1)) * 100);
+                    return (
+                      <div key={item.key}>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className="text-slate-700">{item.label}</span>
+                          <span className="text-slate-500">{count} veces ({pct}%)</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div className={`h-full ${item.color}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </section>
         )}
       </main>
@@ -505,9 +1149,9 @@ function TrackingContent() {
       {showObsModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
-            <h2 className="text-xl font-black text-slate-800 mb-1">Registrar Observación</h2>
-            <p className="text-xs text-slate-500 mb-4">
-              Aporta información descriptiva sobre bienestar, apoyos o vivencias del niño.
+            <h2 className="text-2xl font-black text-slate-800 mb-1">Nueva Observación</h2>
+            <p className="text-xs text-slate-500 mb-6">
+              Registra hechos descriptivos observados y los apoyos que resultaron útiles.
             </p>
 
             <form onSubmit={handleCreateObservation} className="space-y-4">
@@ -516,52 +1160,54 @@ function TrackingContent() {
                 <select
                   value={obsCategory}
                   onChange={(e) => setObsCategory(e.target.value as ObservationCategory)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
                 >
-                  <option value="bienestar">Bienestar General</option>
-                  <option value="sensorial">Sobrecarga o Preferencia Sensorial</option>
-                  <option value="descanso">Descanso / Sueño</option>
-                  <option value="conductual">Estrategia de Autorregulación</option>
-                  <option value="social">Interacción Social</option>
-                  <option value="pedagogico">Desempeño Pedagógico</option>
+                  <option value="bienestar">🌿 Bienestar general</option>
+                  <option value="sensorial">💡 Sensorial</option>
+                  <option value="descanso">☕ Descanso / Sueño</option>
+                  <option value="conductual">🧩 Autorregulación</option>
+                  <option value="social">👥 Interacción social</option>
+                  <option value="pedagogico">📚 Pedagógico / Aprendizaje</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Descripción</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Descripción Descriptiva
+                </label>
                 <textarea
-                  rows={3}
                   required
+                  rows={3}
                   value={obsDescription}
                   onChange={(e) => setObsDescription(e.target.value)}
-                  placeholder="Describe con respeto y claridad la situación observada..."
+                  placeholder="Describe la situación observada de forma objetiva..."
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Apoyos Utilizados (separados por coma)
+                  Apoyos Utilizados (separados por comas)
                 </label>
                 <input
                   type="text"
                   value={obsSupports}
                   onChange={(e) => setObsSupports(e.target.value)}
-                  placeholder="Ej. Espacio de calma, Pictograma de anticipación"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
+                  placeholder="Ej. Temporizador visual, Zona de calma, SAAC"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Resultado Observado
+                  Resultado o Resolución Observada
                 </label>
                 <input
                   type="text"
                   value={obsOutcome}
                   onChange={(e) => setObsOutcome(e.target.value)}
-                  placeholder="Ej. Logró autorregularse en 5 minutos y retomó la actividad"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
+                  placeholder="Ej. Recuperó la calma en 5 minutos y continuó el dibujo"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
                 />
               </div>
 
@@ -578,13 +1224,220 @@ function TrackingContent() {
         </div>
       )}
 
+      {/* MODAL: Nuevo Registro ABC Neuroafirmativo */}
+      {showABCModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-black text-slate-800 mb-1">Nuevo Registro ABC Contextual</h2>
+            <p className="text-xs text-slate-500 mb-6">
+              Analiza los factores del entorno y la necesidad comunicativa subyacente.
+            </p>
+
+            <form onSubmit={handleCreateABCLog} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  A • Antecedente y Entorno Ambiental
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={abcAntecedent}
+                  onChange={(e) => setAbcAntecedent(e.target.value)}
+                  placeholder="¿Qué ocurría antes? (ruido, cambio de actividad, luz intensa, cansancio...)"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  B • Conducta Observable / Expresión Comunicativa
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={abcBehavior}
+                  onChange={(e) => setAbcBehavior(e.target.value)}
+                  placeholder="¿Cómo se manifestó? (taparse oídos, llanto, agitar manos, alejarse...)"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Necesidad no atendida o Barrera identificada (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={abcUnmetNeed}
+                  onChange={(e) => setAbcUnmetNeed(e.target.value)}
+                  placeholder="Ej. Sobrecarga acústica, sed, falta de anticipación..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  C • Apoyo Brindado (Ajuste o Estrategia Aplicada)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={abcSupport}
+                  onChange={(e) => setAbcSupport(e.target.value)}
+                  placeholder="Ej. Ofrecer audífonos, acompañar a zona de calma, pictogramas..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Resultado o Desenlace
+                </label>
+                <input
+                  type="text"
+                  value={abcOutcome}
+                  onChange={(e) => setAbcOutcome(e.target.value)}
+                  placeholder="Ej. Respiró hondo, bebió agua y volvió a participar"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <Button type="button" variant="ghost" onClick={() => setShowABCModal(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary" className="font-bold bg-purple-600 hover:bg-purple-700">
+                  Guardar Registro ABC
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Nueva Bitácora Somática */}
+      {showSomaticModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
+            <h2 className="text-2xl font-black text-slate-800 mb-1">Bitácora Somática y de Sueño</h2>
+            <p className="text-xs text-slate-500 mb-6">
+              Registra horas de descanso y confort físico de la jornada.
+            </p>
+
+            <form onSubmit={handleCreateSomaticLog} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Horas de Sueño
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="24"
+                    value={somaticSleepHours}
+                    onChange={(e) => setSomaticSleepHours(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Calidad del Sueño
+                  </label>
+                  <select
+                    value={somaticSleepQuality}
+                    onChange={(e) => setSomaticSleepQuality(e.target.value as SleepQuality)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                  >
+                    <option value="muy_bueno">Muy bueno / Reparador</option>
+                    <option value="bueno">Bueno</option>
+                    <option value="regular">Regular</option>
+                    <option value="inquieto">Inquieto / Despertares</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Apetito / Alimentación
+                  </label>
+                  <select
+                    value={somaticAppetite}
+                    onChange={(e) => setSomaticAppetite(e.target.value as AppetiteLevel)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="bajo">Bajo / Poco apetito</option>
+                    <option value="selectivo">Selectivo hoy</option>
+                    <option value="aumentado">Aumentado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Molestia Física / Dolor
+                  </label>
+                  <select
+                    value={somaticDiscomfort}
+                    onChange={(e) => setSomaticDiscomfort(e.target.value as DiscomfortLevel)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                  >
+                    <option value="ninguno">Ninguno</option>
+                    <option value="leve">Leve</option>
+                    <option value="moderado">Moderado</option>
+                    <option value="alto">Alto</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Notas sobre molestias físicas (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={somaticDiscomfortNotes}
+                  onChange={(e) => setSomaticDiscomfortNotes(e.target.value)}
+                  placeholder="Ej. Dolor de estómago matutino, dentición..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Nota general de bienestar
+                </label>
+                <input
+                  type="text"
+                  value={somaticWellbeingNote}
+                  onChange={(e) => setSomaticWellbeingNote(e.target.value)}
+                  placeholder="Ej. Despertó sonriente y con buena energía"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <Button type="button" variant="ghost" onClick={() => setShowSomaticModal(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" variant="primary" className="font-bold bg-teal-600 hover:bg-teal-700">
+                  Guardar Bitácora
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: Nuevo Objetivo */}
       {showGoalModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
-            <h2 className="text-xl font-black text-slate-800 mb-1">Proponer Objetivo de Apoyo</h2>
-            <p className="text-xs text-slate-500 mb-4">
-              Define metas con criterios observables de avance.
+            <h2 className="text-2xl font-black text-slate-800 mb-1">Nuevo Objetivo PEI / IEP</h2>
+            <p className="text-xs text-slate-500 mb-6">
+              Establece una meta funcional y medible para el plan individualizado.
             </p>
 
             <form onSubmit={handleCreateGoal} className="space-y-4">
@@ -593,13 +1446,13 @@ function TrackingContent() {
                 <select
                   value={goalArea}
                   onChange={(e) => setGoalArea(e.target.value as GoalArea)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
                 >
                   <option value="comunicacion">🗣️ Comunicación</option>
                   <option value="autonomia">🌟 Autonomía</option>
+                  <option value="sensorial">🌿 Regulación Sensorial</option>
                   <option value="social">👥 Social</option>
                   <option value="cognitiva">🧠 Cognitiva</option>
-                  <option value="sensorial">🌿 Regulación Sensorial</option>
                 </select>
               </div>
 
@@ -608,26 +1461,26 @@ function TrackingContent() {
                   Descripción del Objetivo
                 </label>
                 <textarea
-                  rows={2}
                   required
+                  rows={3}
                   value={goalDesc}
                   onChange={(e) => setGoalDesc(e.target.value)}
-                  placeholder="Ej. Expresar necesidad de descanso utilizando el botón permanente del SAAC..."
+                  placeholder="Ej. Solicitar una pausa utilizando el pictograma en el comunicador..."
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Criterio Observable de Avance
+                  Criterio de Logro
                 </label>
                 <input
                   type="text"
                   required
                   value={goalCriteria}
                   onChange={(e) => setGoalCriteria(e.target.value)}
-                  placeholder="Ej. Lo realiza de forma espontánea en al menos 3 ocasiones por semana"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-sky-500"
+                  placeholder="Ej. En 4 de 5 oportunidades con apoyo visual mínimo"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
                 />
               </div>
 
@@ -654,4 +1507,3 @@ export default function TrackingPage() {
     </Suspense>
   );
 }
-

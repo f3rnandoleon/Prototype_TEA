@@ -292,6 +292,90 @@ export interface IGoal {
   responsible?: IUser;
 }
 
+// Batería Sensorial y Social Subjetiva (Sin medidas cuantitativas arbitrarias)
+export type SensoryBatteryLevel = 'comodo' | 'cansado' | 'pausa' | 'sobrecarga';
+
+export interface IBatteryLog {
+  _id: string;
+  childId: string;
+  level: SensoryBatteryLevel;
+  note?: string;
+  registeredBy: 'child' | 'tutor' | 'professional' | 'teacher';
+  authorId?: string;
+  authorName?: string;
+  createdAt: Date;
+}
+
+// Bitácora Fisiológica y Somática (Sueño, malestar, alimentación)
+export type SleepQuality = 'muy_bueno' | 'bueno' | 'regular' | 'inquieto';
+export type AppetiteLevel = 'normal' | 'bajo' | 'selectivo' | 'aumentado';
+export type DiscomfortLevel = 'ninguno' | 'leve' | 'moderado' | 'alto';
+
+export interface ISomaticLog {
+  _id: string;
+  childId: string;
+  authorId: string;
+  date: Date | string;
+  sleepHours?: number;
+  sleepQuality?: SleepQuality;
+  appetite?: AppetiteLevel;
+  physicalDiscomfort?: DiscomfortLevel;
+  discomfortNotes?: string;
+  wellbeingNote?: string;
+  createdAt: Date;
+  author?: IUser;
+}
+
+// Registro ABC Neuroafirmativo (Antecedente ambiental, Expresión/Conducta, Apoyo brindado)
+export interface IABCLog {
+  _id: string;
+  childId: string;
+  authorId: string;
+  date: Date | string;
+  antecedentContext: string;
+  observedBehavior: string;
+  unmetNeed?: string;
+  supportProvided: string;
+  outcome: string;
+  visibility: UserRole[];
+  createdAt: Date;
+  author?: IUser;
+}
+
+// Eventos no rutinarios y alertas con anticipación visual
+export interface IScheduleEvent {
+  _id: string;
+  childId: string;
+  title: string;
+  description?: string;
+  date: string; // YYYY-MM-DD
+  startTime?: string;
+  endTime?: string;
+  iconEmoji: string;
+  isNonRoutine: boolean;
+  anticipationVisualUrl?: string;
+  alertLevel: 'informativo' | 'importante' | 'cambio_fuerte';
+  visualPrepNotes?: string;
+  createdBy: string;
+  creatorRole?: UserRole;
+  createdAt: Date;
+}
+
+// Cambio de planes estructurado
+export interface IPlanChange {
+  _id: string;
+  childId: string;
+  routineId?: string;
+  originalActivity: string;
+  newTask: string;
+  nextTask?: string;
+  childOptions?: string[];
+  reasonNotes?: string;
+  isActive: boolean;
+  announcedAt: Date;
+  createdAt: Date;
+}
+
 // Auditoría
 export interface IAuditLog {
   _id: string;
@@ -304,3 +388,4 @@ export interface IAuditLog {
   userAgent?: string;
   timestamp: Date;
 }
+

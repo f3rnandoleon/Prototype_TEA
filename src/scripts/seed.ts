@@ -13,6 +13,11 @@ import { ActivityAssignmentModel } from '../models/ActivityAssignment';
 import { ActivityResultModel } from '../models/ActivityResult';
 import { ObservationModel } from '../models/Observation';
 import { GoalModel } from '../models/Goal';
+import { ScheduleEventModel } from '../models/ScheduleEvent';
+import { PlanChangeModel } from '../models/PlanChange';
+import { SomaticLogModel } from '../models/SomaticLog';
+import { ABCLogModel } from '../models/ABCLog';
+import { BatteryLogModel } from '../models/BatteryLog';
 import { defaultCategories, defaultVocabularyItems } from '../features/aac/defaultVocabulary';
 
 // Cargar variables de entorno de .env.local y .env exactamente igual que Next.js
@@ -426,10 +431,90 @@ async function seed() {
     ],
   });
 
-  console.log('🎯 [SEED] Observaciones y Objetivos creados.');
+  // 11. Eventos no rutinarios y anticipación visual
+  await ScheduleEventModel.deleteMany({});
+  await ScheduleEventModel.create({
+    childId: mateo._id,
+    title: 'Visita de control al Odontólogo Pediátrico',
+    description: 'Revisión dental preventiva con la Dra. Méndez en clínica adaptada.',
+    date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startTime: '10:30',
+    iconEmoji: '🏥',
+    isNonRoutine: true,
+    alertLevel: 'importante',
+    visualPrepNotes: 'Llevar audífonos canceladores de ruido y juguete sensorial favorito',
+    createdBy: tutor._id,
+    creatorRole: 'tutor',
+  });
+
+  // 12. Cambio de planes activo
+  await PlanChangeModel.deleteMany({});
+  await PlanChangeModel.create({
+    childId: mateo._id,
+    originalActivity: 'Ir al parque a correr',
+    newTask: 'Pintura y armar bloques en casa',
+    nextTask: 'Almorzar juntos en familia',
+    childOptions: ['Pintar con témperas verdes', 'Armar dinosaurios de madera', 'Escuchar música de lluvia'],
+    reasonNotes: 'Lluvia intensa y viento frío en el exterior',
+    isActive: true,
+    announcedAt: new Date(),
+    createdBy: tutor._id,
+  });
+
+  // 13. Bitácora somática y fisiológica
+  await SomaticLogModel.deleteMany({});
+  await SomaticLogModel.create({
+    childId: mateo._id,
+    authorId: tutor._id,
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    sleepHours: 8.5,
+    sleepQuality: 'bueno',
+    appetite: 'normal',
+    physicalDiscomfort: 'ninguno',
+    wellbeingNote: 'Despertó con buen ánimo y dispuesto a comenzar la jornada.',
+  });
+
+  await SomaticLogModel.create({
+    childId: mateo._id,
+    authorId: tutor._id,
+    date: new Date(Date.now() - 48 * 60 * 60 * 1000),
+    sleepHours: 7.0,
+    sleepQuality: 'inquieto',
+    appetite: 'bajo',
+    physicalDiscomfort: 'leve',
+    discomfortNotes: 'Molestia leve en encías por recambio dental.',
+    wellbeingNote: 'Necesitó mayor contención matutina y alimentos suaves.',
+  });
+
+  // 14. Registro ABC neuroafirmativo
+  await ABCLogModel.deleteMany({});
+  await ABCLogModel.create({
+    childId: mateo._id,
+    authorId: professional._id,
+    date: new Date(Date.now() - 36 * 60 * 60 * 1000),
+    antecedentContext: 'Transición inesperada hacia el aula de música con ruidos de percusión altos',
+    observedBehavior: 'Se cubrió ambos oídos con las manos, buscó agacharse cerca de la pared y vocalizó malestar',
+    unmetNeed: 'Sobrecarga acústica súbita y falta de anticipación visual previa sobre el instrumento ruidoso',
+    supportProvided: 'Se le facilitaron audífonos canceladores, se redujo el volumen ambiental y se utilizó el pictograma de calma',
+    outcome: 'Respiró profundamente, logró reincorporarse al grupo y acompañó el ritmo con palmadas suaves',
+    visibility: ['tutor', 'professional', 'teacher'],
+  });
+
+  // 15. Batería sensorial subjetiva
+  await BatteryLogModel.deleteMany({});
+  await BatteryLogModel.create({
+    childId: mateo._id,
+    level: 'comodo',
+    note: 'Me siento bien y con energía para seguir',
+    registeredBy: 'child',
+    authorName: 'Mati (Autorregistro)',
+  });
+
+  console.log('🎯 [SEED] Planificación y Seguimiento enriquecidos.');
   console.log('✨ [SEED] Base de datos poblada exitosamente.');
   await mongoose.disconnect();
 }
+
 
 seed().catch((err) => {
   console.error('❌ [SEED_ERROR]:', err);

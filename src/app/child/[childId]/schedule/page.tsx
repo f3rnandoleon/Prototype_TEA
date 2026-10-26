@@ -14,11 +14,14 @@ import {
   Info,
   Coffee,
   AlertTriangle,
+  CalendarCheck2,
+  Smile,
 } from 'lucide-react';
 import { ChildHeader } from '@/components/child/ChildHeader';
 import { Button } from '@/components/ui/Button';
+import { SensoryBatteryWidget } from '@/components/child/SensoryBatteryWidget';
 import { useSpeechSynthesis } from '@/features/aac/useSpeechSynthesis';
-import { IChild, IRoutine, IRoutineProgress, IRoutineStep } from '@/types';
+import { IChild, IRoutine, IRoutineProgress, IRoutineStep, IScheduleEvent, IPlanChange } from '@/types';
 
 interface SchedulePageProps {
   params: {
@@ -32,15 +35,13 @@ export default function KidSchedulePage({ params }: SchedulePageProps) {
   const [routines, setRoutines] = useState<IRoutine[]>([]);
   const [activeRoutine, setActiveRoutine] = useState<IRoutine | null>(null);
   const [progress, setProgress] = useState<IRoutineProgress | null>(null);
+  const [events, setEvents] = useState<IScheduleEvent[]>([]);
+  const [activePlanChange, setActivePlanChange] = useState<IPlanChange | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal para comunicar cambios imprevistos de forma amable y estructurada
+  // Modal para comunicar cambios imprevistos de forma estructurada
   const [showUnexpectedChange, setShowUnexpectedChange] = useState(false);
-  const [changeInfo, setChangeInfo] = useState({
-    originalTask: 'Ir al parque',
-    newTask: 'Dibujar en casa',
-    nextTask: 'Almorzar juntos',
-  });
+  const [selectedChildOption, setSelectedChildOption] = useState<string | null>(null);
 
   const { speak } = useSpeechSynthesis({
     rate: child?.accessibility?.voiceSpeed || 0.9,
@@ -67,6 +68,24 @@ export default function KidSchedulePage({ params }: SchedulePageProps) {
         }
       })
       .finally(() => setIsLoading(false));
+
+    // 3. Cargar eventos no rutinarios / anticipación
+    fetch(`/api/schedule/events?childId=${childId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.events) setEvents(data.events);
+      })
+      .catch((e) => console.error(e));
+
+    // 4. Cargar cambio de plan activo
+    fetch(`/api/schedule/plan-change?childId=${childId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.activeChange) {
+          setActivePlanChange(data.activeChange);
+        }
+      })
+      .catch((e) => console.error(e));
   }, [childId]);
 
   const loadProgress = async (routineId: string) => {
@@ -128,13 +147,20 @@ export default function KidSchedulePage({ params }: SchedulePageProps) {
     speak(`${title}. ${desc || ''}`);
   };
 
+  const handleOpenPlanChange = () => {
+    setShowUnexpectedChange(true);
+    const textToSpeak = activePlanChange
+      ? `Aviso de cambio en el plan. No haremos ${activePlanChange.originalActivity}. En su lugar haremos ${activePlanChange.newTask}.`
+      : 'A veces los planes cambian y todo está bien.';
+    speak(textToSpeak);
+  };
+
   const completedCount = progress?.completedStepIds.length || 0;
   const totalSteps = activeRoutine?.steps.length || 0;
 
   // Encontrar el paso actual pendiente y el siguiente
-  const uncompletedSteps = activeRoutine?.steps.filter(
-    (s) => !progress?.completedStepIds.includes(s.id)
-  ) || [];
+  const uncompletedSteps =
+    activeRoutine?.steps.filter((s) => !progress?.completedStepIds.includes(s.id)) || [];
 
   const currentStep = uncompletedSteps[0] || null;
   const nextStep = uncompletedSteps[1] || null;
@@ -147,7 +173,37 @@ export default function KidSchedulePage({ params }: SchedulePageProps) {
         currentSectionTitle="Mi Día (Agenda Visual)"
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-between">
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* AVISO ACTIVO DE CAMBIO DE PLANES (ANTICIPACIÓN COGNITIVA) */}
+        {activePlanChange && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 border-3 border-amber-400 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-3 duration-300">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl sm:text-4xl">⭐</span>
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-amber-800 bg-amber-200/80 px-2.5 py-0.5 rounded-full">
+                  Cambio de planes para hoy
+                </span>
+                <h2 className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">
+                  Hoy no haremos: <span className="line-through text-slate-500">{activePlanChange.originalActivity}</span>
+                </h2>
+                <p className="text-sm font-bold text-emerald-800">
+                  En su lugar haremos: {activePlanChange.newTask}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleOpenPlanChange}
+              variant="primary"
+              size="md"
+              className="w-full sm:w-auto font-black rounded-2xl bg-amber-600 hover:bg-amber-700 text-white shadow-md gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Ver explicación visual</span>
+            </Button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="py-16 text-center text-slate-400 font-bold">Cargando tu agenda...</div>
         ) : routines.length === 0 ? (
@@ -305,77 +361,124 @@ export default function KidSchedulePage({ params }: SchedulePageProps) {
                   const isDone = progress?.completedStepIds.includes(step.id) || false;
                   return (
                     <div
-                      key={step.id || idx}
+                      key={step.id}
                       onClick={() => handleToggleStep(step)}
-                      className={`flex items-center justify-between p-4 rounded-3xl border-3 cursor-pointer transition-all active:scale-98 ${
+                      className={`p-4 rounded-3xl border-2 flex items-center justify-between cursor-pointer transition-all ${
                         isDone
-                          ? 'bg-emerald-50/70 border-emerald-400 text-emerald-950'
-                          : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800'
+                          ? 'border-emerald-200 bg-emerald-50/70 text-emerald-900'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center space-x-4">
-                        <div className="text-emerald-600 flex-shrink-0">
-                          {isDone ? (
-                            <CheckCircle2 className="w-8 h-8 fill-emerald-500 text-white" />
-                          ) : (
-                            <Circle className="w-8 h-8 text-slate-300" />
-                          )}
-                        </div>
-
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-black text-slate-400 w-6">#{idx + 1}</span>
                         {step.iconUrl && (
                           <img
                             src={step.iconUrl}
                             alt=""
-                            className="w-12 h-12 object-contain pointer-events-none"
+                            className="w-10 h-10 object-contain pointer-events-none"
                           />
                         )}
-
                         <div>
                           <p
-                            className={`text-base sm:text-lg font-black leading-tight ${
-                              isDone ? 'line-through text-emerald-800 opacity-70' : 'text-slate-900'
+                            className={`font-black text-base ${
+                              isDone ? 'line-through text-slate-500' : 'text-slate-800'
                             }`}
                           >
                             {step.title}
                           </p>
-                          {step.estimatedMinutes && (
-                            <span className="text-[11px] text-slate-400 font-bold">
-                              ~{step.estimatedMinutes} minutos
-                            </span>
+                          {step.description && (
+                            <p className="text-xs text-slate-500 mt-0.5">{step.description}</p>
                           )}
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSpeakStep(step.title, step.description);
-                        }}
-                        className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-xl transition-colors"
-                        title="Escuchar"
-                      >
-                        <Volume2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSpeakStep(step.title, step.description);
+                          }}
+                          className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
+                        >
+                          <Volume2 className="w-5 h-5" />
+                        </button>
+                        {isDone ? (
+                          <CheckCircle2 className="w-7 h-7 text-emerald-600 fill-emerald-100" />
+                        ) : (
+                          <Circle className="w-7 h-7 text-slate-300" />
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* SECCIÓN 3: BOTONES DE APOYO (DESCANSO Y AVISO DE CAMBIOS) */}
+            {/* SECCIÓN 3: EVENTOS NO RUTINARIOS Y ANTICIPACIÓN VISUAL (SI HAY) */}
+            {events.length > 0 && (
+              <div className="bg-white p-6 rounded-4xl border-2 border-indigo-200 shadow-sm space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🗓️</span>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800">
+                      Eventos especiales y salidas programadas
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Anticipación visual de momentos diferentes para que estés preparado y tranquilo.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {events.map((ev) => (
+                    <div
+                      key={ev._id}
+                      className="p-4 rounded-3xl bg-indigo-50/70 border border-indigo-200 flex items-start gap-3"
+                    >
+                      <span className="text-3xl p-2 bg-white rounded-2xl shadow-xs">
+                        {ev.iconEmoji || '📅'}
+                      </span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className="font-black text-slate-900 text-sm">{ev.title}</h4>
+                          <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                            {ev.startTime}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1">{ev.description}</p>
+                        {ev.visualPrepNotes && (
+                          <div className="mt-2 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-xl">
+                            💡 Apoyo: {ev.visualPrepNotes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* SECCIÓN 4: TERMÓMETRO SENSORIAL Y DE BIENESTAR (AUTORREGISTRO / REGISTRO ASISTIDO) */}
+            <SensoryBatteryWidget
+              childId={childId}
+              childName={child?.nickname || child?.name}
+              voiceSpeed={child?.accessibility?.voiceSpeed}
+            />
+
+            {/* SECCIÓN 5: BOTONES DE APOYO RÁPIDO */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Link href={`/child/${childId}/calm`}>
                 <button className="w-full p-4 rounded-3xl bg-indigo-50 hover:bg-indigo-100 border-2 border-indigo-200 text-indigo-900 font-black text-base flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all">
                   <Coffee className="w-6 h-6 text-indigo-600" />
-                  <span>Necesito un descanso</span>
+                  <span>Necesito una pausa tranquila</span>
                 </button>
               </Link>
 
-              {/* Botón para simular o ver el flujo de cambio imprevisto */}
+              {/* Botón para abrir el diálogo explicativo de cambio de plan */}
               <button
-                onClick={() => setShowUnexpectedChange(true)}
-                className="w-full p-4 rounded-3xl bg-amber-50 hover:bg-amber-100 border-2 border-amber-200 text-amber-900 font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                onClick={handleOpenPlanChange}
+                className="w-full p-4 rounded-3xl bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-900 font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
               >
                 <Info className="w-5 h-5 text-amber-600" />
                 <span>¿Hubo un cambio en el plan?</span>
@@ -385,53 +488,99 @@ export default function KidSchedulePage({ params }: SchedulePageProps) {
         )}
       </main>
 
-      {/* MODAL: FLUJO AMABLE PARA CAMBIOS INESPERADOS (SECCIÓN 8 PROMPT) */}
+      {/* MODAL: FLUJO AMABLE PARA CAMBIOS INESPERADOS */}
       {showUnexpectedChange && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-4xl max-w-md w-full p-6 sm:p-8 shadow-2xl border-4 border-amber-400 text-center">
+          <div className="bg-white rounded-4xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border-4 border-amber-400 text-center animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-9 h-9" />
             </div>
 
             <h2 className="text-2xl font-black text-slate-900 mb-2">Un cambio en el plan</h2>
             <p className="text-sm text-slate-600 mb-6 font-medium">
-              A veces los planes cambian, y está bien. Aquí está lo que haremos:
+              A veces los planes cambian por diferentes razones, y todo está bien. Aquí está lo que haremos con calma:
             </p>
 
             <div className="space-y-3 text-left mb-6">
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3">
-                <span className="text-xl">❌</span>
+              {/* 1. Lo que no haremos ahora */}
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3">
+                <span className="text-2xl">❌</span>
                 <div>
-                  <span className="text-[11px] font-bold text-rose-600 uppercase">Lo que no haremos ahora:</span>
-                  <p className="font-black text-sm text-slate-800">{changeInfo.originalTask}</p>
+                  <span className="text-[11px] font-bold text-rose-600 uppercase">
+                    1. Lo que no haremos ahora:
+                  </span>
+                  <p className="font-black text-sm text-slate-800">
+                    {activePlanChange?.originalActivity || 'Ir a la actividad prevista'}
+                  </p>
                 </div>
               </div>
 
-              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center gap-3">
-                <span className="text-xl">⭐</span>
+              {/* 2. Lo que haremos en su lugar */}
+              <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center gap-3">
+                <span className="text-2xl">⭐</span>
                 <div>
-                  <span className="text-[11px] font-bold text-emerald-700 uppercase">Lo que haremos en su lugar:</span>
-                  <p className="font-black text-sm text-slate-900">{changeInfo.newTask}</p>
+                  <span className="text-[11px] font-bold text-emerald-700 uppercase">
+                    2. Lo que haremos en su lugar:
+                  </span>
+                  <p className="font-black text-sm text-slate-900">
+                    {activePlanChange?.newTask || 'Una actividad tranquila juntos'}
+                  </p>
                 </div>
               </div>
 
-              <div className="p-3 bg-sky-50 border border-sky-200 rounded-2xl flex items-center gap-3">
-                <span className="text-xl">⏭️</span>
+              {/* 3. Lo que pasará después */}
+              <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-2xl flex items-center gap-3">
+                <span className="text-2xl">⏭️</span>
                 <div>
-                  <span className="text-[11px] font-bold text-sky-700 uppercase">Lo que pasará después:</span>
-                  <p className="font-black text-sm text-slate-800">{changeInfo.nextTask}</p>
+                  <span className="text-[11px] font-bold text-sky-700 uppercase">
+                    3. Lo que pasará después:
+                  </span>
+                  <p className="font-black text-sm text-slate-800">
+                    {activePlanChange?.nextTask || 'Seguiremos con nuestra rutina habitual'}
+                  </p>
                 </div>
               </div>
+
+              {/* 4. Opciones para el niño (si fueron configuradas) */}
+              {activePlanChange?.childOptions && activePlanChange.childOptions.length > 0 && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl">
+                  <span className="text-[11px] font-bold text-amber-800 uppercase block mb-2">
+                    🎯 Puedes elegir qué prefieres hacer:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {activePlanChange.childOptions.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setSelectedChildOption(opt);
+                          speak(`Has elegido: ${opt}`);
+                        }}
+                        className={`p-2.5 rounded-xl text-xs font-black border transition-all text-left ${
+                          selectedChildOption === opt
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                            : 'bg-white text-slate-700 border-amber-300 hover:bg-amber-100/60'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button
               variant="primary"
               size="lg"
               onClick={() => {
-                speak(`Está bien. Ahora haremos: ${changeInfo.newTask}`);
+                const phrase = `Comprendido. Ahora haremos: ${
+                  activePlanChange?.newTask || 'la actividad indicada'
+                }. Vamos con calma.`;
+                speak(phrase);
                 setShowUnexpectedChange(false);
               }}
-              className="w-full font-black text-base py-3.5 rounded-2xl shadow-md"
+              className="w-full font-black text-base py-4 rounded-2xl shadow-md"
             >
               Comprendido, vamos con calma
             </Button>

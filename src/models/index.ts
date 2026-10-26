@@ -10,3 +10,8 @@ export * from './ActivityResult';
 export * from './Observation';
 export * from './Goal';
 export * from './AuditLog';
+export * from './BatteryLog';
+export * from './SomaticLog';
+export * from './ABCLog';
+export * from './ScheduleEvent';
+export * from './PlanChange';
