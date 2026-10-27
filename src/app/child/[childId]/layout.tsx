@@ -2,6 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { connectDB } from '@/lib/db/mongodb';
 import { ChildModel } from '@/models/Child';
+import { ChildRemoteListener } from '@/components/child/ChildRemoteListener';
 
 interface ChildLayoutProps {
   children: React.ReactNode;
@@ -29,6 +30,10 @@ export default async function ChildLayout({ children, params }: ChildLayoutProps
     <div
       className={`min-h-screen bg-slate-100 flex flex-col font-sans select-none ${contrastClass}`}
     >
+      <ChildRemoteListener
+        childId={params.childId}
+        soundEnabled={child.accessibility?.soundEnabled !== false}
+      />
       {children}
     </div>
   );

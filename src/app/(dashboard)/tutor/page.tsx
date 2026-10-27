@@ -19,6 +19,7 @@ import {
   Clock,
   XCircle,
   AlertTriangle,
+  Radio,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { Button } from '@/components/ui/Button';
@@ -324,6 +325,21 @@ export default function TutorDashboard() {
 
                   {/* Acciones principales del niño */}
                   <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
+                    {/* Botón Control Remoto Asistido */}
+                    <button
+                      onClick={() => {
+                        try {
+                          localStorage.setItem('tea_selected_child_id', child._id);
+                        } catch {}
+                        const btn = document.getElementById('btn-open-remote-control');
+                        btn?.click();
+                      }}
+                      className="w-full py-2.5 px-3 rounded-2xl bg-slate-900 hover:bg-indigo-950 text-white font-extrabold text-xs flex items-center justify-center gap-2 border border-indigo-400/40 transition-all shadow-sm active:scale-98"
+                    >
+                      <Radio className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Control Asistido Remoto</span>
+                    </button>
+
                     <Link href={`/child/${child._id}`} className="w-full">
                       <Button
                         variant="secondary"

@@ -2,8 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import { Sparkles, MessageCircle, Calendar, BookOpen, Heart, Shield, Users, ArrowRight, Baby } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { redirect } from 'next/navigation';
 
 export default function HomePage() {
+  redirect('/login');
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-emerald-50/30 to-sky-50 flex flex-col">
       {/* Barra superior de navegación */}

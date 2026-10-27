@@ -15,10 +15,12 @@ import {
   Menu,
   X,
   ChevronRight,
+  Radio,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { BottomNav } from '@/components/shared/BottomNav';
+import { ChildRemoteControlWidget } from '@/components/shared/ChildRemoteControlWidget';
 
 interface NavbarProps {
   user?: {
@@ -125,6 +127,19 @@ export const Navbar: React.FC<NavbarProps> = ({ user }) => {
                     <span className="inline">Modo Niño</span>
                   </Button>
                 </Link>
+
+                {/* Botón Acceso Rápido al Control Remoto Asistido */}
+                <button
+                  onClick={() => {
+                    const btn = document.getElementById('btn-open-remote-control');
+                    btn?.click();
+                  }}
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-indigo-950 text-xs font-black shadow-sm transition-all active:scale-95 border border-indigo-400/40"
+                  title="Abrir Control Remoto de Modo Niño"
+                >
+                  <Radio className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Control Asistido</span>
+                </button>
 
                 {/* Información del usuario y rol (Desktop) */}
                 <div className="hidden lg:flex flex-col items-end text-xs">
@@ -242,6 +257,9 @@ export const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
       {/* Barra de navegación inferior móvil para acceso rápido con 1 toque */}
       <BottomNav user={user} />
+
+      {/* Control Flotante / Acceso Rápido de Modo Niño (Opción B) */}
+      {user && <ChildRemoteControlWidget user={user as any} />}
     </>
   );
 };
