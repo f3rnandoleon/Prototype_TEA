@@ -322,6 +322,10 @@ export interface ISomaticLog {
   physicalDiscomfort?: DiscomfortLevel;
   discomfortNotes?: string;
   wellbeingNote?: string;
+  symptoms?: string[];
+  mood?: string;
+  energyLevel?: string;
+  supportsUsed?: string[];
   createdAt: Date;
   author?: IUser;
 }
@@ -349,6 +353,7 @@ export interface IScheduleEvent {
   title: string;
   description?: string;
   date: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD para períodos continuos/rachas
   startTime?: string;
   endTime?: string;
   iconEmoji: string;
@@ -356,6 +361,9 @@ export interface IScheduleEvent {
   anticipationVisualUrl?: string;
   alertLevel: 'informativo' | 'importante' | 'cambio_fuerte';
   visualPrepNotes?: string;
+  badgeStyle?: 'flower' | 'pill' | 'outlined' | 'solid';
+  badgeColor?: string; // e.g. 'purple', 'rose', 'teal', 'indigo', 'amber'
+  badgeLabel?: string; // e.g. 'OVULACIÓN 14' -> 'TERAPIA 14'
   createdBy: string;
   creatorRole?: UserRole;
   createdAt: Date;

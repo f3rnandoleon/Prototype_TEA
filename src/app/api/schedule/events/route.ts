@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       title,
       description,
       date,
+      endDate,
       startTime,
       endTime,
       iconEmoji,
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
       anticipationVisualUrl,
       alertLevel,
       visualPrepNotes,
+      badgeStyle,
+      badgeColor,
+      badgeLabel,
     } = body;
 
     if (!childId || !title || !date) {
@@ -68,6 +72,7 @@ export async function POST(req: NextRequest) {
       title,
       description: description || '',
       date,
+      endDate: endDate || '',
       startTime: startTime || '09:00',
       endTime: endTime || '',
       iconEmoji: iconEmoji || '📅',
@@ -75,6 +80,9 @@ export async function POST(req: NextRequest) {
       anticipationVisualUrl: anticipationVisualUrl || '',
       alertLevel: alertLevel || 'informativo',
       visualPrepNotes: visualPrepNotes || '',
+      badgeStyle: badgeStyle || 'pill',
+      badgeColor: badgeColor || 'purple',
+      badgeLabel: badgeLabel || '',
       createdBy: session.userId,
       creatorRole: session.role,
     });

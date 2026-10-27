@@ -503,6 +503,17 @@ function TrackingContent() {
               </select>
             )}
 
+            <Link href={`/calendar?childId=${selectedChildId}`}>
+              <Button
+                variant="secondary"
+                size="md"
+                className="font-bold gap-1.5 shadow-sm whitespace-nowrap bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200"
+              >
+                <Calendar className="w-4 h-4 text-rose-600" />
+                <span>Ver en Calendario</span>
+              </Button>
+            </Link>
+
             {/* Botón de acción contextual según la pestaña */}
             {activeTab === 'timeline' && (
               <Button

@@ -6,6 +6,7 @@ export interface IScheduleEventDocument extends Document {
   title: string;
   description?: string;
   date: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD para rachas/períodos continuos
   startTime?: string;
   endTime?: string;
   iconEmoji: string;
@@ -13,6 +14,9 @@ export interface IScheduleEventDocument extends Document {
   anticipationVisualUrl?: string;
   alertLevel: 'informativo' | 'importante' | 'cambio_fuerte';
   visualPrepNotes?: string;
+  badgeStyle?: 'flower' | 'pill' | 'outlined' | 'solid';
+  badgeColor?: string;
+  badgeLabel?: string;
   createdBy: Types.ObjectId;
   creatorRole?: UserRole;
   createdAt: Date;
@@ -24,6 +28,7 @@ const ScheduleEventSchema = new Schema<IScheduleEventDocument>(
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '' },
     date: { type: String, required: true, index: true }, // YYYY-MM-DD
+    endDate: { type: String, default: '' },
     startTime: { type: String, default: '09:00' },
     endTime: { type: String, default: '' },
     iconEmoji: { type: String, default: '📅' },
@@ -35,6 +40,13 @@ const ScheduleEventSchema = new Schema<IScheduleEventDocument>(
       default: 'informativo',
     },
     visualPrepNotes: { type: String, default: '' },
+    badgeStyle: {
+      type: String,
+      enum: ['flower', 'pill', 'outlined', 'solid'],
+      default: 'pill',
+    },
+    badgeColor: { type: String, default: 'purple' },
+    badgeLabel: { type: String, default: '' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     creatorRole: {
       type: String,

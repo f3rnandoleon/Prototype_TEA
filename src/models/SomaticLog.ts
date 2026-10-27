@@ -11,6 +11,10 @@ export interface ISomaticLogDocument extends Document {
   physicalDiscomfort?: DiscomfortLevel;
   discomfortNotes?: string;
   wellbeingNote?: string;
+  symptoms?: string[];
+  mood?: string;
+  energyLevel?: string;
+  supportsUsed?: string[];
   createdAt: Date;
 }
 
@@ -37,6 +41,10 @@ const SomaticLogSchema = new Schema<ISomaticLogDocument>(
     },
     discomfortNotes: { type: String, default: '' },
     wellbeingNote: { type: String, default: '' },
+    symptoms: { type: [String], default: [] },
+    mood: { type: String, default: '' },
+    energyLevel: { type: String, default: 'normal' },
+    supportsUsed: { type: [String], default: [] },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

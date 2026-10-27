@@ -431,8 +431,67 @@ async function seed() {
     ],
   });
 
-  // 11. Eventos no rutinarios y anticipación visual
+  // 11. Eventos no rutinarios y anticipación visual con franjas e insignias florales
   await ScheduleEventModel.deleteMany({});
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+  // Evento con flor destacada (como el día 14 en la imagen de referencia)
+  await ScheduleEventModel.create({
+    childId: mateo._id,
+    title: 'Fonoaudiología y Lenguaje',
+    description: 'Sesión terapéutica centrada en comunicación aumentativa SAAC y juego compartido.',
+    date: `${currentYear}-${currentMonth}-14`,
+    startTime: '10:30',
+    iconEmoji: '🌸',
+    isNonRoutine: true,
+    alertLevel: 'informativo',
+    badgeStyle: 'flower',
+    badgeColor: 'purple',
+    badgeLabel: 'TERAPIA',
+    visualPrepNotes: 'Anticipar tablero SAAC de juguetes preferidos y animales',
+    createdBy: tutor._id,
+    creatorRole: 'tutor',
+  });
+
+  // Racha rosa pastel de sensibilidad (como días 2-6 de la imagen)
+  await ScheduleEventModel.create({
+    childId: mateo._id,
+    title: 'Período de sensibilidad sensorial y auditiva',
+    description: 'Mayor sensibilidad al ruido de obras viales cercanas al hogar y aula.',
+    date: `${currentYear}-${currentMonth}-02`,
+    endDate: `${currentYear}-${currentMonth}-06`,
+    startTime: '08:00',
+    iconEmoji: '🎧',
+    isNonRoutine: true,
+    alertLevel: 'importante',
+    badgeStyle: 'pill',
+    badgeColor: 'rose',
+    badgeLabel: 'SENSIBLE',
+    visualPrepNotes: 'Tener siempre a mano audífonos canceladores y rincón de calma',
+    createdBy: tutor._id,
+    creatorRole: 'tutor',
+  });
+
+  // Racha lavanda pastel (como días 12-13 y 16-17)
+  await ScheduleEventModel.create({
+    childId: mateo._id,
+    title: 'Semana de Terapia Ocupacional e Integración',
+    description: 'Actividades de estimulación propioceptiva y juego sensorial coordinado.',
+    date: `${currentYear}-${currentMonth}-12`,
+    endDate: `${currentYear}-${currentMonth}-13`,
+    startTime: '15:00',
+    iconEmoji: '🧩',
+    isNonRoutine: true,
+    alertLevel: 'informativo',
+    badgeStyle: 'pill',
+    badgeColor: 'purple',
+    badgeLabel: 'TERAPIA',
+    createdBy: professional._id,
+    creatorRole: 'professional',
+  });
+
   await ScheduleEventModel.create({
     childId: mateo._id,
     title: 'Visita de control al Odontólogo Pediátrico',
@@ -442,6 +501,9 @@ async function seed() {
     iconEmoji: '🏥',
     isNonRoutine: true,
     alertLevel: 'importante',
+    badgeStyle: 'flower',
+    badgeColor: 'teal',
+    badgeLabel: 'DENTISTA',
     visualPrepNotes: 'Llevar audífonos canceladores de ruido y juguete sensorial favorito',
     createdBy: tutor._id,
     creatorRole: 'tutor',
@@ -461,7 +523,7 @@ async function seed() {
     createdBy: tutor._id,
   });
 
-  // 13. Bitácora somática y fisiológica
+  // 13. Bitácora somática y fisiológica con factores y estados de ánimo
   await SomaticLogModel.deleteMany({});
   await SomaticLogModel.create({
     childId: mateo._id,
@@ -471,19 +533,39 @@ async function seed() {
     sleepQuality: 'bueno',
     appetite: 'normal',
     physicalDiscomfort: 'ninguno',
-    wellbeingNote: 'Despertó con buen ánimo y dispuesto a comenzar la jornada.',
+    symptoms: ['stimming_intenso'],
+    mood: 'tranquilo',
+    supportsUsed: ['rincon_calma'],
+    wellbeingNote: 'Despertó con buen ánimo y dispuesto a comenzar la jornada escolar.',
   });
 
   await SomaticLogModel.create({
     childId: mateo._id,
     authorId: tutor._id,
     date: new Date(Date.now() - 48 * 60 * 60 * 1000),
-    sleepHours: 7.0,
+    sleepHours: 6.5,
     sleepQuality: 'inquieto',
     appetite: 'bajo',
     physicalDiscomfort: 'leve',
     discomfortNotes: 'Molestia leve en encías por recambio dental.',
-    wellbeingNote: 'Necesitó mayor contención matutina y alimentos suaves.',
+    symptoms: ['insomnio', 'sensibilidad_ruido', 'molestia_estomago'],
+    mood: 'ansioso',
+    supportsUsed: ['auriculares_canceladores', 'manta_peso'],
+    wellbeingNote: 'Necesitó mayor contención matutina, audífonos y alimentos suaves.',
+  });
+
+  await SomaticLogModel.create({
+    childId: mateo._id,
+    authorId: tutor._id,
+    date: new Date(),
+    sleepHours: 9.0,
+    sleepQuality: 'muy_bueno',
+    appetite: 'normal',
+    physicalDiscomfort: 'ninguno',
+    symptoms: [],
+    mood: 'radiante',
+    supportsUsed: ['comunicador_saac'],
+    wellbeingNote: 'Día excelente con alta comunicación visual y participación activa.',
   });
 
   // 14. Registro ABC neuroafirmativo
