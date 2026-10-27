@@ -106,4 +106,74 @@ describe('Módulo de Calendario y Detección de Patrones Sensoriales', () => {
     const correlationRatio = Math.round((poorSleepWithSensory.length / poorSleepDays.length) * 100);
     expect(correlationRatio).toBe(100);
   });
+
+  it('filtra y actualiza dinámicamente la evolución y registros según el día seleccionado en el calendario', () => {
+    // Helper de comparación de fechas usado en el calendario
+    const isSameCalendarDay = (d1: Date | string, d2: Date | string): boolean => {
+      if (!d1 || !d2) return false;
+      if (typeof d1 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d1)) {
+        if (typeof d2 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d2)) return d1 === d2;
+        const d2Obj = typeof d2 === 'string' ? new Date(d2) : d2;
+        const y2 = d2Obj.getFullYear();
+        const m2 = String(d2Obj.getMonth() + 1).padStart(2, '0');
+        const day2 = String(d2Obj.getDate()).padStart(2, '0');
+        if (d1 === `${y2}-${m2}-${day2}`) return true;
+        try {
+          if (d1 === d2Obj.toISOString().split('T')[0]) return true;
+        } catch {}
+        return false;
+      }
+      if (typeof d2 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d2)) {
+        return isSameCalendarDay(d2, d1);
+      }
+      const date1 = typeof d1 === 'string' ? new Date(d1) : d1;
+      const date2 = typeof d2 === 'string' ? new Date(d2) : d2;
+      return (
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
+      );
+    };
+
+    const mockEvents: Partial<IScheduleEvent>[] = [
+      { _id: 'ev-1', title: 'Terapia Ocupacional', date: '2026-03-14', iconEmoji: '🧩' },
+      { _id: 'ev-2', title: 'Fonoaudiología', date: '2026-03-15', iconEmoji: '🗣️' },
+    ];
+
+    const mockObservations = [
+      {
+        _id: 'obs-1',
+        category: 'sensorial',
+        description: 'Usó audífonos y reguló la respuesta sonora en el aula.',
+        date: new Date('2026-03-14T10:00:00.000Z'),
+      },
+      {
+        _id: 'obs-2',
+        category: 'pedagogico',
+        description: 'Completó actividad visual de emparejamiento.',
+        date: new Date('2026-03-15T11:00:00.000Z'),
+      },
+    ];
+
+    // Cuando se selecciona el día 14 de marzo
+    const selectedDateDay14 = new Date(2026, 2, 14);
+    const day14Events = mockEvents.filter((e) => isSameCalendarDay(e.date!, selectedDateDay14));
+    const day14Obs = mockObservations.filter((o) => isSameCalendarDay(o.date, selectedDateDay14));
+
+    expect(day14Events.length).toBe(1);
+    expect(day14Events[0].title).toBe('Terapia Ocupacional');
+    expect(day14Obs.length).toBe(1);
+    expect(day14Obs[0].description).toContain('Usó audífonos');
+
+    // Cuando el usuario cambia la selección al día 15 de marzo
+    const selectedDateDay15 = new Date(2026, 2, 15);
+    const day15Events = mockEvents.filter((e) => isSameCalendarDay(e.date!, selectedDateDay15));
+    const day15Obs = mockObservations.filter((o) => isSameCalendarDay(o.date, selectedDateDay15));
+
+    expect(day15Events.length).toBe(1);
+    expect(day15Events[0].title).toBe('Fonoaudiología');
+    expect(day15Obs.length).toBe(1);
+    expect(day15Obs[0].description).toContain('Completó actividad visual');
+  });
 });
+

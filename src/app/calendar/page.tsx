@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { CalendarMonthView } from '@/components/calendar/CalendarMonthView';
 import { DailyPatternTracker } from '@/components/calendar/DailyPatternTracker';
+import { DayEvolutionRecords } from '@/components/calendar/DayEvolutionRecords';
 import { NewEventModal } from '@/components/calendar/NewEventModal';
 import { IChild, IUser, IScheduleEvent, ISomaticLog, IObservation, IABCLog } from '@/types';
 
@@ -148,39 +149,81 @@ function CalendarPageContent() {
     setShowEventModal(true);
   };
 
+  // Función de comparación precisa de fechas entre strings YYYY-MM-DD y Date
+  const isSameCalendarDay = (d1: Date | string, d2: Date | string): boolean => {
+    if (!d1 || !d2) return false;
+    if (typeof d1 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d1)) {
+      if (typeof d2 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d2)) {
+        return d1 === d2;
+      }
+      const d2Obj = typeof d2 === 'string' ? new Date(d2) : d2;
+      if (isNaN(d2Obj.getTime())) return false;
+      const y2 = d2Obj.getFullYear();
+      const m2 = String(d2Obj.getMonth() + 1).padStart(2, '0');
+      const day2 = String(d2Obj.getDate()).padStart(2, '0');
+      if (d1 === `${y2}-${m2}-${day2}`) return true;
+      try {
+        if (d1 === d2Obj.toISOString().split('T')[0]) return true;
+      } catch {}
+      return false;
+    }
+
+    if (typeof d2 === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d2)) {
+      return isSameCalendarDay(d2, d1);
+    }
+
+    const date1 = typeof d1 === 'string' ? new Date(d1) : d1;
+    const date2 = typeof d2 === 'string' ? new Date(d2) : d2;
+    if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return false;
+
+    const matchLocal =
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate();
+    if (matchLocal) return true;
+
+    const matchUtc =
+      date1.getUTCFullYear() === date2.getUTCFullYear() &&
+      date1.getUTCMonth() === date2.getUTCMonth() &&
+      date1.getUTCDate() === date2.getUTCDate();
+    if (matchUtc) return true;
+
+    try {
+      return date1.toISOString().split('T')[0] === date2.toISOString().split('T')[0];
+    } catch {
+      return false;
+    }
+  };
+
+  // Manejador de selección de fecha (sincroniza selección y mes si es necesario)
+  const handleSelectDate = (newDate: Date) => {
+    setSelectedDate(newDate);
+    if (
+      newDate.getFullYear() !== currentMonthDate.getFullYear() ||
+      newDate.getMonth() !== currentMonthDate.getMonth()
+    ) {
+      setCurrentMonthDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+    }
+  };
+
   // Obtener log somático para la fecha seleccionada
   const activeSomaticLog = React.useMemo(() => {
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
-    return (
-      somaticLogs.find((l) => {
-        const logDateStr = new Date(l.date).toISOString().split('T')[0];
-        return logDateStr === selectedDateStr;
-      }) || null
-    );
+    return somaticLogs.find((l) => isSameCalendarDay(l.date, selectedDate)) || null;
   }, [somaticLogs, selectedDate]);
 
   // Obtener eventos del día seleccionado
   const dayEvents = React.useMemo(() => {
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
-    return events.filter((e) => e.date === selectedDateStr);
+    return events.filter((e) => isSameCalendarDay(e.date, selectedDate));
   }, [events, selectedDate]);
 
   // Obtener observaciones del día seleccionado
   const dayObservations = React.useMemo(() => {
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
-    return observations.filter((o) => {
-      const oDateStr = new Date(o.date).toISOString().split('T')[0];
-      return oDateStr === selectedDateStr;
-    });
+    return observations.filter((o) => isSameCalendarDay(o.date, selectedDate));
   }, [observations, selectedDate]);
 
   // Obtener registros ABC del día seleccionado
   const dayAbcLogs = React.useMemo(() => {
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
-    return abcLogs.filter((a) => {
-      const aDateStr = new Date(a.date).toISOString().split('T')[0];
-      return aDateStr === selectedDateStr;
-    });
+    return abcLogs.filter((a) => isSameCalendarDay(a.date, selectedDate));
   }, [abcLogs, selectedDate]);
 
   const selectedChild = children.find((c) => c._id === selectedChildId);
@@ -247,7 +290,7 @@ function CalendarPageContent() {
               }`}
             >
               <CalendarIcon className="w-3.5 h-3.5" />
-              <span>Vista Mensual</span>
+              <span>Vista Mensual y Registros</span>
             </button>
             <button
               onClick={() => setViewMode('tracker')}
@@ -258,19 +301,20 @@ function CalendarPageContent() {
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>Registro Diario</span>
+              <span>Factores Sensoriales</span>
             </button>
           </div>
         </div>
 
         {/* Contenido principal: Grid de 2 columnas en Desktop o según pestaña en móvil */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* COLUMNA IZQUIERDA: Vista Mensual */}
+          {/* COLUMNA IZQUIERDA: Vista Mensual y Evolución del Día Debajo */}
           <section
-            className={`lg:col-span-6 xl:col-span-6 space-y-4 ${
+            className={`lg:col-span-7 xl:col-span-7 space-y-6 ${
               viewMode === 'tracker' ? 'hidden lg:block' : 'block'
             }`}
           >
+            {/* 1. Calendario de Vista Mensual */}
             <div className="bg-white rounded-[2.2rem] sm:rounded-[2.8rem] p-2 sm:p-4 border border-slate-200/80 shadow-sm">
               <div className="px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs text-slate-500 font-bold border-b border-slate-100 mb-2">
                 <span className="flex items-center gap-1.5 text-indigo-700">
@@ -286,12 +330,7 @@ function CalendarPageContent() {
                 currentDate={currentMonthDate}
                 onMonthChange={setCurrentMonthDate}
                 selectedDate={selectedDate}
-                onSelectDate={(newDate) => {
-                  setSelectedDate(newDate);
-                  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-                    setViewMode('tracker');
-                  }
-                }}
+                onSelectDate={handleSelectDate}
                 events={events}
                 somaticLogs={somaticLogs}
                 observations={observations}
@@ -299,18 +338,41 @@ function CalendarPageContent() {
                 onOpenNewEventModal={handleOpenNewEvent}
               />
             </div>
+
+            {/* 2. EVOLUCIÓN Y REGISTROS DEL DÍA DEBAJO DEL CALENDARIO */}
+            <DayEvolutionRecords
+              selectedDate={selectedDate}
+              onSelectDate={handleSelectDate}
+              childId={selectedChildId}
+              childName={selectedChild?.name || 'Estudiante'}
+              dayEvents={dayEvents}
+              dayObservations={dayObservations}
+              dayAbcLogs={dayAbcLogs}
+              somaticLog={activeSomaticLog}
+              onRefreshData={() => loadCalendarData(selectedChildId, currentMonthDate)}
+              onOpenNewEventModal={handleOpenNewEvent}
+              onOpenSensoryTracker={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                  setViewMode('tracker');
+                } else {
+                  const el = document.getElementById('daily-pattern-tracker-section');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            />
           </section>
 
           {/* COLUMNA DERECHA: Registro Sensorial y Factores Diarios */}
           <section
-            className={`lg:col-span-6 xl:col-span-6 ${
+            id="daily-pattern-tracker-section"
+            className={`lg:col-span-5 xl:col-span-5 ${
               viewMode === 'month' ? 'hidden lg:block' : 'block'
             }`}
           >
             <div className="bg-white rounded-[2.2rem] sm:rounded-[2.8rem] p-4 sm:p-7 border border-slate-200/80 shadow-sm">
               <DailyPatternTracker
                 selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
+                onSelectDate={handleSelectDate}
                 somaticLog={activeSomaticLog}
                 dayEvents={dayEvents}
                 dayObservations={dayObservations}

@@ -424,15 +424,15 @@ export default function TutorDashboard() {
                             link.status === 'accepted'
                               ? 'success'
                               : link.status === 'pending'
-                              ? 'warning'
-                              : 'destructive'
+                                ? 'warning'
+                                : 'destructive'
                           }
                         >
                           {link.status === 'accepted'
                             ? 'Activo'
                             : link.status === 'pending'
-                            ? 'Pendiente'
-                            : 'Revocado'}
+                              ? 'Pendiente'
+                              : 'Revocado'}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-xs">
@@ -462,42 +462,7 @@ export default function TutorDashboard() {
           )}
         </section>
 
-        {/* Sección: Registro de Auditoría y Transparencia */}
-        <section aria-labelledby="audit-heading" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 id="audit-heading" className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-600" />
-                <span>Auditoría de Seguridad y Trazabilidad</span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Registro inmutable de accesos sensibles, modificaciones de permisos y exportaciones para tu tranquilidad.
-              </p>
-            </div>
-          </div>
 
-          {auditLogs.length === 0 ? (
-            <div className="p-4 text-center text-slate-400 text-xs">No hay eventos registrados.</div>
-          ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {auditLogs.slice(0, 10).map((log, index) => (
-                <div
-                  key={index}
-                  className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="font-bold text-slate-700">{log.action}</span>
-                    <span className="text-slate-400">•</span>
-                    <span className="text-slate-500">{log.resource}</span>
-                  </div>
-                  <div className="text-slate-400 text-[11px]">
-                    {new Date(log.timestamp).toLocaleString('es-ES')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
       </main>
 
       {/* MODAL: Crear Perfil Infantil */}
@@ -670,22 +635,20 @@ export default function TutorDashboard() {
                       setInviteRole('professional');
                       setInvitePermissions((prev) => prev.filter((p) => p !== 'activity.assign' && p !== 'activity.create'));
                     }}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
-                      inviteRole === 'professional'
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${inviteRole === 'professional'
                         ? 'border-sky-500 bg-sky-50 text-sky-800 ring-2 ring-sky-400'
                         : 'border-slate-200 text-slate-600'
-                    }`}
+                      }`}
                   >
                     🩺 Profesional Clínico
                   </button>
                   <button
                     type="button"
                     onClick={() => setInviteRole('teacher')}
-                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
-                      inviteRole === 'teacher'
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${inviteRole === 'teacher'
                         ? 'border-amber-500 bg-amber-50 text-amber-800 ring-2 ring-amber-400'
                         : 'border-slate-200 text-slate-600'
-                    }`}
+                      }`}
                   >
                     📚 Docente / Aula
                   </button>
