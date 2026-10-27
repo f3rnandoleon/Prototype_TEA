@@ -4,6 +4,8 @@ import { connectDB } from '@/lib/db/mongodb';
 import { ScheduleEventModel } from '@/models/ScheduleEvent';
 import { SomaticLogModel } from '@/models/SomaticLog';
 import { BatteryLogModel } from '@/models/BatteryLog';
+import { ObservationModel } from '@/models/Observation';
+import { ABCLogModel } from '@/models/ABCLog';
 import { ChildModel } from '@/models/Child';
 import { authorizeChildAccess } from '@/lib/security/policies';
 import { logAuditEvent } from '@/lib/audit/logger';
@@ -70,7 +72,26 @@ export async function GET(req: NextRequest) {
       createdAt: { $gte: startDate, $lte: endDate },
     }).sort({ createdAt: 1 });
 
-    // 4. Analizar patrones reales detectados
+    // 4. Obtener observaciones registradas (Seguimiento reflejado en Calendario)
+    const observations = await ObservationModel.find({
+      childId,
+      visibility: session.role,
+      date: { $gte: startDate, $lte: endDate },
+    })
+      .populate('authorId', 'name email role specialty')
+      .populate('scheduleEventId', 'title date startTime iconEmoji badgeLabel')
+      .sort({ date: 1 });
+
+    // 5. Obtener registros ABC (Conducta/Crisis y Apoyo brindado)
+    const abcLogs = await ABCLogModel.find({
+      childId,
+      visibility: session.role,
+      date: { $gte: startDate, $lte: endDate },
+    })
+      .populate('authorId', 'name email role specialty')
+      .sort({ date: 1 });
+
+    // 6. Analizar patrones reales detectados integrando seguimiento y calendario
     const patternInsights = [];
 
     // Patrón 1: Relación entre sueño y sensibilidad/malestar
@@ -128,6 +149,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Patrón 4: Integración entre sesiones de terapia en agenda y notas de evolución
+    if (observations.length > 0) {
+      const therapyObservations = observations.filter(
+        (o) => o.category === 'bienestar' || o.category === 'social' || o.category === 'pedagogico'
+      );
+      if (therapyObservations.length > 0) {
+        patternInsights.push({
+          type: 'evolution',
+          title: 'Evolución Positiva en Sesiones Registradas',
+          description: `Se han documentado ${therapyObservations.length} observaciones en este período con resultados y apoyos aplicados exitosamente.`,
+          icon: '📝',
+          severity: 'info',
+        });
+      }
+    }
+
     return NextResponse.json({
       child: {
         _id: child._id,
@@ -138,6 +175,8 @@ export async function GET(req: NextRequest) {
       events,
       somaticLogs,
       batteryLogs,
+      observations,
+      abcLogs,
       patternInsights,
     });
   } catch (error: unknown) {

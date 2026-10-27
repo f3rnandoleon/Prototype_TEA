@@ -35,6 +35,7 @@ import {
   ISomaticLog,
   IABCLog,
   IBatteryLog,
+  IScheduleEvent,
   ObservationCategory,
   GoalArea,
   GoalStatus,
@@ -58,11 +59,12 @@ function TrackingContent() {
   const [somaticLogs, setSomaticLogs] = useState<ISomaticLog[]>([]);
   const [batteryLogs, setBatteryLogs] = useState<IBatteryLog[]>([]);
   const [goals, setGoals] = useState<IGoal[]>([]);
+  const [scheduleEvents, setScheduleEvents] = useState<IScheduleEvent[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filtro de categoría en la línea de tiempo
-  const [timelineFilter, setTimelineFilter] = useState<'all' | 'obs' | 'abc' | 'somatic' | 'battery'>('all');
+  // Filtro de categoría en la línea de tiempo (incluye eventos de calendario)
+  const [timelineFilter, setTimelineFilter] = useState<'all' | 'obs' | 'abc' | 'somatic' | 'battery' | 'events'>('all');
 
   // Modal nueva observación general
   const [showObsModal, setShowObsModal] = useState(false);
@@ -70,6 +72,8 @@ function TrackingContent() {
   const [obsDescription, setObsDescription] = useState('');
   const [obsSupports, setObsSupports] = useState('');
   const [obsOutcome, setObsOutcome] = useState('');
+  const [obsDate, setObsDate] = useState<string>('');
+  const [obsEventId, setObsEventId] = useState<string>('');
 
   // Modal nuevo registro ABC neuroafirmativo
   const [showABCModal, setShowABCModal] = useState(false);
@@ -104,6 +108,9 @@ function TrackingContent() {
 
   useEffect(() => {
     if (selectedChildId) {
+      try {
+        localStorage.setItem('tea_selected_child_id', selectedChildId);
+      } catch {}
       loadAllTrackingData(selectedChildId);
     }
   }, [selectedChildId]);
@@ -124,7 +131,9 @@ function TrackingContent() {
         const cData = await cRes.json();
         setChildren(cData.children || []);
         if (cData.children?.length > 0 && !selectedChildId) {
-          setSelectedChildId(cData.children[0]._id);
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('tea_selected_child_id') : null;
+          const found = stored && cData.children.some((c: IChild) => c._id === stored);
+          setSelectedChildId(found ? (stored as string) : cData.children[0]._id);
         }
       }
     } catch (e) {
@@ -171,6 +180,12 @@ function TrackingContent() {
         .then((r) => r.json())
         .then((d) => setSummary(d.summary || null))
         .catch((e) => console.error(e));
+
+      // 7. Eventos y sesiones de calendario programados
+      fetch(`/api/schedule/events?childId=${childId}`)
+        .then((r) => r.json())
+        .then((d) => setScheduleEvents(d.events || []))
+        .catch((e) => console.error(e));
     } catch (e) {
       console.error(e);
     }
@@ -190,6 +205,8 @@ function TrackingContent() {
           description: obsDescription,
           supportsUsed: obsSupports.split(',').map((s) => s.trim()).filter(Boolean),
           observedOutcome: obsOutcome,
+          date: obsDate ? new Date(obsDate).toISOString() : undefined,
+          scheduleEventId: obsEventId || undefined,
         }),
       });
 
@@ -198,6 +215,8 @@ function TrackingContent() {
         setObsDescription('');
         setObsSupports('');
         setObsOutcome('');
+        setObsDate('');
+        setObsEventId('');
         loadAllTrackingData(selectedChildId);
       }
     } catch (e) {
@@ -460,6 +479,56 @@ function TrackingContent() {
     });
   }
 
+  // Agregar eventos y sesiones del calendario (Calendario reflejado en Seguimiento y Evolución)
+  if (timelineFilter === 'all' || timelineFilter === 'events') {
+    scheduleEvents.forEach((ev) => {
+      const eventDate = new Date(`${ev.date}T${ev.startTime || '10:00'}:00`);
+      timelineItems.push({
+        id: `event-${ev._id}`,
+        type: 'obs',
+        date: eventDate,
+        title: `${ev.iconEmoji || '📅'} ${ev.title}`,
+        subtitle: ev.startTime ? `Hora: ${ev.startTime}` : undefined,
+        badge: {
+          label: ev.badgeLabel || 'Calendario',
+          bg: ev.badgeColor === 'purple' ? 'bg-purple-100' : ev.badgeColor === 'rose' ? 'bg-rose-100' : 'bg-sky-100',
+          text: ev.badgeColor === 'purple' ? 'text-purple-800' : ev.badgeColor === 'rose' ? 'text-rose-800' : 'text-sky-800',
+        },
+        author: ev.creatorRole ? `Programado (${ev.creatorRole})` : 'Agenda',
+        content: (
+          <div className="space-y-2 text-xs">
+            {ev.description && <p className="text-slate-700">{ev.description}</p>}
+            {ev.visualPrepNotes && (
+              <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-100 text-purple-900 font-medium">
+                💡 Preparación visual y sensorial: {ev.visualPrepNotes}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setObsDescription(`Evolución en sesión: ${ev.title}. `);
+                  setObsDate(ev.date);
+                  setObsEventId(ev._id);
+                  setShowObsModal(true);
+                }}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors"
+              >
+                📝 Registrar evolución de esta sesión
+              </button>
+              <Link
+                href={`/calendar?childId=${selectedChildId}`}
+                className="text-xs text-rose-700 hover:text-rose-900 font-bold hover:underline flex items-center gap-1"
+              >
+                <span>Ver en Calendario</span>
+              </Link>
+            </div>
+          </div>
+        ),
+      });
+    });
+  }
+
   // Ordenar cronológicamente descendente
   timelineItems.sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -565,6 +634,78 @@ function TrackingContent() {
           </div>
         </div>
 
+        {/* WIDGET DE INTEGRACIÓN: Sesiones y Eventos de Calendario en Seguimiento */}
+        {scheduleEvents.length > 0 && (
+          <div className="bg-gradient-to-r from-rose-50/70 via-purple-50/50 to-sky-50/70 rounded-3xl p-5 border border-rose-100 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-rose-100 text-rose-700">
+                  <Calendar className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="font-black text-slate-800 text-sm">
+                    Sesiones y Anticipación Programada (Calendario)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Sincronizadas directamente con la agenda y el calendario de anticipación
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={`/calendar?childId=${selectedChildId}`}
+                className="text-xs font-bold text-rose-700 hover:text-rose-900 flex items-center gap-1"
+              >
+                <span>Abrir Calendario y Patrones</span>
+                <span className="text-sm">→</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {scheduleEvents.slice(0, 3).map((ev) => (
+                <div
+                  key={ev._id}
+                  className="p-3.5 rounded-2xl bg-white border border-rose-100 shadow-xs flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-lg">{ev.iconEmoji || '🌸'}</span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-100">
+                        {ev.badgeLabel || 'Sesión'}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-slate-800 text-xs sm:text-sm">{ev.title}</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
+                      📅 {ev.date} {ev.startTime ? `• ⏰ ${ev.startTime}` : ''}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-slate-50 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setObsDescription(`Evolución en sesión: ${ev.title}. `);
+                        setObsDate(ev.date);
+                        setObsEventId(ev._id);
+                        setShowObsModal(true);
+                      }}
+                      className="text-xs font-bold text-purple-700 hover:text-purple-900"
+                    >
+                      📝 Registrar evolución
+                    </button>
+                    <Link
+                      href={`/calendar?childId=${selectedChildId}`}
+                      className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                    >
+                      Ver fecha
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Pestañas de Navegación de Seguimiento y Evolución */}
         <div className="flex border-b border-slate-200 space-x-6 overflow-x-auto pb-1">
           <button
@@ -636,7 +777,7 @@ function TrackingContent() {
               <span className="text-slate-400 flex items-center gap-1">
                 <Filter className="w-3.5 h-3.5" /> Filtrar:
               </span>
-              {(['all', 'obs', 'abc', 'somatic', 'battery'] as const).map((f) => (
+              {(['all', 'obs', 'abc', 'events', 'somatic', 'battery'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setTimelineFilter(f)}
@@ -649,6 +790,7 @@ function TrackingContent() {
                   {f === 'all' && 'Todos los eventos'}
                   {f === 'obs' && 'Observaciones'}
                   {f === 'abc' && 'Registros ABC'}
+                  {f === 'events' && '📅 Agenda / Calendario'}
                   {f === 'somatic' && 'Somático / Sueño'}
                   {f === 'battery' && 'Termómetro Sensorial'}
                 </button>
@@ -1180,6 +1322,40 @@ function TrackingContent() {
                   <option value="social">👥 Interacción social</option>
                   <option value="pedagogico">📚 Pedagógico / Aprendizaje</option>
                 </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Fecha de Observación
+                  </label>
+                  <input
+                    type="date"
+                    value={obsDate}
+                    onChange={(e) => setObsDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                  />
+                </div>
+
+                {scheduleEvents.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                      Vincular a Sesión (Calendario)
+                    </label>
+                    <select
+                      value={obsEventId}
+                      onChange={(e) => setObsEventId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                    >
+                      <option value="">(Sin sesión específica)</option>
+                      {scheduleEvents.map((ev) => (
+                        <option key={ev._id} value={ev._id}>
+                          {ev.iconEmoji || '🌸'} {ev.date} - {ev.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div>

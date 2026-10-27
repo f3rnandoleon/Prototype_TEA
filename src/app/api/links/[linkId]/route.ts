@@ -75,7 +75,9 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
     // El tutor propietario puede cambiar permisos o cambiar el estado (ej. revocar)
     if (isTutorOwner) {
       if (parsed.data.permissions) {
-        link.permissions = parsed.data.permissions;
+        link.permissions = link.role === 'professional'
+          ? parsed.data.permissions.filter((p: string) => p !== 'activity.assign' && p !== 'activity.create')
+          : parsed.data.permissions;
       }
       if (parsed.data.status) {
         link.status = parsed.data.status;

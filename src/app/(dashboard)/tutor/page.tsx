@@ -666,14 +666,17 @@ export default function TutorDashboard() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setInviteRole('professional')}
+                    onClick={() => {
+                      setInviteRole('professional');
+                      setInvitePermissions((prev) => prev.filter((p) => p !== 'activity.assign' && p !== 'activity.create'));
+                    }}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
                       inviteRole === 'professional'
                         ? 'border-sky-500 bg-sky-50 text-sky-800 ring-2 ring-sky-400'
                         : 'border-slate-200 text-slate-600'
                     }`}
                   >
-                    🩺 Profesional
+                    🩺 Profesional Clínico
                   </button>
                   <button
                     type="button"
@@ -684,7 +687,7 @@ export default function TutorDashboard() {
                         : 'border-slate-200 text-slate-600'
                     }`}
                   >
-                    📚 Docente
+                    📚 Docente / Aula
                   </button>
                 </div>
               </div>
@@ -697,10 +700,10 @@ export default function TutorDashboard() {
                   {[
                     { id: 'child.profile.read', label: 'Ver perfil y apoyos visuales' },
                     { id: 'routine.read', label: 'Consultar rutinas y agenda' },
-                    { id: 'activity.assign', label: 'Asignar actividades educativas' },
-                    { id: 'observation.create', label: 'Registrar observaciones y notas' },
+                    ...(inviteRole === 'teacher' ? [{ id: 'activity.assign', label: 'Asignar actividades educativas de aula' }] : []),
+                    { id: 'observation.create', label: inviteRole === 'professional' ? 'Registrar observaciones clínicas/terapéuticas' : 'Registrar observaciones pedagógicas' },
                     { id: 'observation.read', label: 'Leer historial de observaciones' },
-                    { id: 'goal.create', label: 'Proponer objetivos de apoyo' },
+                    { id: 'goal.create', label: inviteRole === 'professional' ? 'Proponer objetivos terapéuticos PEI' : 'Proponer objetivos pedagógicos' },
                     { id: 'goal.update', label: 'Actualizar avance de objetivos' },
                   ].map((perm) => (
                     <label

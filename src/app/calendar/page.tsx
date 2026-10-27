@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/Badge';
 import { CalendarMonthView } from '@/components/calendar/CalendarMonthView';
 import { DailyPatternTracker } from '@/components/calendar/DailyPatternTracker';
 import { NewEventModal } from '@/components/calendar/NewEventModal';
-import { IChild, IUser, IScheduleEvent, ISomaticLog } from '@/types';
+import { IChild, IUser, IScheduleEvent, ISomaticLog, IObservation, IABCLog } from '@/types';
 
 function CalendarPageContent() {
   const router = useRouter();
@@ -41,6 +41,8 @@ function CalendarPageContent() {
   // Datos obtenidos de la API
   const [events, setEvents] = useState<IScheduleEvent[]>([]);
   const [somaticLogs, setSomaticLogs] = useState<ISomaticLog[]>([]);
+  const [observations, setObservations] = useState<IObservation[]>([]);
+  const [abcLogs, setAbcLogs] = useState<IABCLog[]>([]);
   const [patternInsights, setPatternInsights] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -54,6 +56,10 @@ function CalendarPageContent() {
 
   useEffect(() => {
     if (selectedChildId) {
+      // Guardar en localStorage para sincronizar entre módulos
+      try {
+        localStorage.setItem('tea_selected_child_id', selectedChildId);
+      } catch {}
       loadCalendarData(selectedChildId, currentMonthDate);
     }
   }, [selectedChildId, currentMonthDate]);
@@ -74,7 +80,9 @@ function CalendarPageContent() {
         const cData = await cRes.json();
         setChildren(cData.children || []);
         if (cData.children?.length > 0 && !selectedChildId) {
-          setSelectedChildId(cData.children[0]._id);
+          const storedChildId = typeof window !== 'undefined' ? localStorage.getItem('tea_selected_child_id') : null;
+          const found = storedChildId && cData.children.some((c: IChild) => c._id === storedChildId);
+          setSelectedChildId(found ? (storedChildId as string) : cData.children[0]._id);
         }
       }
     } catch (e) {
@@ -94,6 +102,8 @@ function CalendarPageContent() {
         const data = await res.json();
         setEvents(data.events || []);
         setSomaticLogs(data.somaticLogs || []);
+        setObservations(data.observations || []);
+        setAbcLogs(data.abcLogs || []);
         setPatternInsights(data.patternInsights || []);
       }
     } catch (e) {
@@ -148,6 +158,30 @@ function CalendarPageContent() {
       }) || null
     );
   }, [somaticLogs, selectedDate]);
+
+  // Obtener eventos del día seleccionado
+  const dayEvents = React.useMemo(() => {
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+    return events.filter((e) => e.date === selectedDateStr);
+  }, [events, selectedDate]);
+
+  // Obtener observaciones del día seleccionado
+  const dayObservations = React.useMemo(() => {
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+    return observations.filter((o) => {
+      const oDateStr = new Date(o.date).toISOString().split('T')[0];
+      return oDateStr === selectedDateStr;
+    });
+  }, [observations, selectedDate]);
+
+  // Obtener registros ABC del día seleccionado
+  const dayAbcLogs = React.useMemo(() => {
+    const selectedDateStr = selectedDate.toISOString().split('T')[0];
+    return abcLogs.filter((a) => {
+      const aDateStr = new Date(a.date).toISOString().split('T')[0];
+      return aDateStr === selectedDateStr;
+    });
+  }, [abcLogs, selectedDate]);
 
   const selectedChild = children.find((c) => c._id === selectedChildId);
 
@@ -261,6 +295,8 @@ function CalendarPageContent() {
                 }}
                 events={events}
                 somaticLogs={somaticLogs}
+                observations={observations}
+                abcLogs={abcLogs}
                 onOpenNewEventModal={handleOpenNewEvent}
               />
             </div>
@@ -277,6 +313,11 @@ function CalendarPageContent() {
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
                 somaticLog={activeSomaticLog}
+                dayEvents={dayEvents}
+                dayObservations={dayObservations}
+                dayAbcLogs={dayAbcLogs}
+                childId={selectedChildId}
+                onRefreshData={() => loadCalendarData(selectedChildId, currentMonthDate)}
                 onSaveDay={handleSaveDay}
                 patternInsights={patternInsights}
               />

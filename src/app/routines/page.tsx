@@ -112,6 +112,9 @@ function RoutinesAdminContent() {
   useEffect(() => {
     if (selectedChildId) {
       loadChildPlanningData(selectedChildId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tea_selected_child_id', selectedChildId);
+      }
     }
   }, [selectedChildId]);
 
@@ -131,7 +134,11 @@ function RoutinesAdminContent() {
         const cData = await childrenRes.json();
         setChildren(cData.children || []);
         if (cData.children?.length > 0 && !selectedChildId) {
-          setSelectedChildId(cData.children[0]._id);
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('tea_selected_child_id') : null;
+          const match = cData.children.find((c: IChild) => c._id === initialChildId) ||
+                        cData.children.find((c: IChild) => c._id === stored) ||
+                        cData.children[0];
+          setSelectedChildId(match._id);
         }
       }
     } catch (e) {

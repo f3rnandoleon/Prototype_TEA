@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
       visibility: session.role,
     })
       .populate('authorId', 'name email role specialty')
+      .populate('scheduleEventId', 'title date startTime iconEmoji badgeLabel')
       .sort({ date: -1, createdAt: -1 });
 
     return NextResponse.json({ observations });
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { childId, category, description, supportsUsed, observedOutcome, visibility, date } = body;
+    const { childId, category, description, supportsUsed, observedOutcome, visibility, date, scheduleEventId } = body;
 
     if (!childId || !category || !description) {
       return NextResponse.json({ error: 'childId, category y description son obligatorios' }, { status: 400 });
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
       supportsUsed: supportsUsed || [],
       observedOutcome: observedOutcome || '',
       visibility: visibility || ['tutor', 'professional', 'teacher'],
+      scheduleEventId: scheduleEventId || undefined,
     });
 
     await logAuditEvent({

@@ -13,6 +13,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
+    if (session.role === 'professional') {
+      return NextResponse.json(
+        { error: 'Los profesionales de salud no gestionan actividades educativas de aula; esta función corresponde al docente y tutor.' },
+        { status: 403 }
+      );
+    }
+
     const childId = req.nextUrl.searchParams.get('childId');
     if (!childId) {
       return NextResponse.json({ error: 'childId es requerido' }, { status: 400 });
@@ -36,6 +43,13 @@ export async function POST(req: NextRequest) {
     const session = await getSessionUser(req);
     if (!session) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    if (session.role === 'professional') {
+      return NextResponse.json(
+        { error: 'Los profesionales de salud no tienen acceso a asignar actividades educativas; esta atribución es exclusiva del docente o tutor.' },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

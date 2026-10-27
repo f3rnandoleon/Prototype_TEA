@@ -20,7 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ user }) => {
 
   const homePath = `/${user.role}`;
 
-  const navItems = [
+  const allNavItems = [
     {
       label: 'Panel',
       href: homePath,
@@ -57,6 +57,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ user }) => {
       isActive: pathname.startsWith('/activities'),
     },
   ];
+
+  const navItems = allNavItems.filter(
+    (item) => !(user.role === 'professional' && item.href === '/activities')
+  );
 
   return (
     <nav

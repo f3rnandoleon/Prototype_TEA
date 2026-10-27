@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Check,
   Sparkles,
@@ -18,8 +19,17 @@ import {
   Clock,
   Shield,
   Lightbulb,
+  FileText,
+  Plus,
+  ArrowRight,
+  User,
+  Zap,
+  X,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
-import { ISomaticLog } from '@/types';
+import { ISomaticLog, IScheduleEvent, IObservation, IABCLog } from '@/types';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 export interface FactorOption {
   id: string;
@@ -33,6 +43,11 @@ interface DailyPatternTrackerProps {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   somaticLog?: ISomaticLog | null;
+  dayEvents?: IScheduleEvent[];
+  dayObservations?: IObservation[];
+  dayAbcLogs?: IABCLog[];
+  childId?: string;
+  onRefreshData?: () => void;
   onSaveDay: (data: {
     symptoms: string[];
     mood: string;
@@ -51,6 +66,11 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
   selectedDate,
   onSelectDate,
   somaticLog,
+  dayEvents = [],
+  dayObservations = [],
+  dayAbcLogs = [],
+  childId,
+  onRefreshData,
   onSaveDay,
   patternInsights = [],
 }) => {
@@ -139,6 +159,48 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
   const [wellbeingNote, setWellbeingNote] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Formulario rápido de nota / observación de evolución
+  const [showQuickObsForm, setShowQuickObsForm] = useState(false);
+  const [obsCategory, setObsCategory] = useState<'bienestar' | 'sensorial' | 'descanso' | 'conductual' | 'social' | 'pedagogico'>('bienestar');
+  const [obsDescription, setObsDescription] = useState('');
+  const [obsSupports, setObsSupports] = useState('');
+  const [obsOutcome, setObsOutcome] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [isSubmittingObs, setIsSubmittingObs] = useState(false);
+
+  const handleQuickObsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!childId || !obsDescription.trim()) return;
+    setIsSubmittingObs(true);
+    try {
+      const res = await fetch('/api/observations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          childId,
+          date: selectedDate.toISOString(),
+          category: obsCategory,
+          description: obsDescription,
+          supportsUsed: obsSupports.split(',').map((s) => s.trim()).filter(Boolean),
+          observedOutcome: obsOutcome,
+          scheduleEventId: selectedEventId || undefined,
+        }),
+      });
+      if (res.ok) {
+        setShowQuickObsForm(false);
+        setObsDescription('');
+        setObsSupports('');
+        setObsOutcome('');
+        setSelectedEventId('');
+        if (onRefreshData) onRefreshData();
+      }
+    } catch (err) {
+      console.error('Error al guardar observación rápida:', err);
+    } finally {
+      setIsSubmittingObs(false);
+    }
+  };
 
   // Cargar datos cuando cambia la fecha o el log somático
   useEffect(() => {
@@ -373,6 +435,297 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
         <span className="text-slate-500">
           Fecha: {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}
         </span>
+      </div>
+
+      {/* SECCIÓN INTEGRADA: Seguimiento y Evolución del Día (Reflejado en Calendario) */}
+      <div className="bg-white rounded-3xl p-5 shadow-sm border border-rose-100 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+              <FileText className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-black text-slate-800 text-sm sm:text-base">
+                Evolución y Registros del Día
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Observaciones clínicas, notas pedagógicas y registros ABC sincronizados
+              </p>
+            </div>
+          </div>
+
+          {!showQuickObsForm && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowQuickObsForm(true)}
+              className="text-xs font-bold gap-1 text-purple-700 border-purple-200 hover:bg-purple-50"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Nota</span>
+            </Button>
+          )}
+        </div>
+
+        {/* Formulario rápido para añadir observación sin salir del calendario */}
+        {showQuickObsForm && (
+          <form onSubmit={handleQuickObsSubmit} className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-3 animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-purple-900 uppercase">
+                Nueva Nota de Evolución para el {selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowQuickObsForm(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Categoría</label>
+                <select
+                  value={obsCategory}
+                  onChange={(e) => setObsCategory(e.target.value as any)}
+                  className="w-full text-xs p-2 rounded-xl border border-purple-200 bg-white"
+                >
+                  <option value="bienestar">Bienestar / Estado basal</option>
+                  <option value="sensorial">Sensorial y Autorregulación</option>
+                  <option value="conductual">Conductual / Apoyo positivo</option>
+                  <option value="social">Social y Comunicación</option>
+                  <option value="pedagogico">Pedagógico y Aprendizaje</option>
+                  <option value="descanso">Descanso y Sueño</option>
+                </select>
+              </div>
+
+              {dayEvents.length > 0 && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Vincular a Sesión</label>
+                  <select
+                    value={selectedEventId}
+                    onChange={(e) => setSelectedEventId(e.target.value)}
+                    className="w-full text-xs p-2 rounded-xl border border-purple-200 bg-white"
+                  >
+                    <option value="">(Ninguna sesión específica)</option>
+                    {dayEvents.map((ev) => (
+                      <option key={ev._id} value={ev._id}>
+                        {ev.iconEmoji} {ev.title} {ev.startTime ? `(${ev.startTime})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Descripción / Evolución</label>
+              <textarea
+                rows={2}
+                required
+                value={obsDescription}
+                onChange={(e) => setObsDescription(e.target.value)}
+                placeholder="Describe el avance, desempeño o respuesta durante la sesión o el día..."
+                className="w-full text-xs p-2.5 rounded-xl border border-purple-200 bg-white focus:ring-2 focus:ring-purple-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Apoyos que sirvieron (separados por coma)</label>
+                <input
+                  type="text"
+                  value={obsSupports}
+                  onChange={(e) => setObsSupports(e.target.value)}
+                  placeholder="Ej. audífonos, temporizador, apoyo visual"
+                  className="w-full text-xs p-2 rounded-xl border border-purple-200 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Resultado observado</label>
+                <input
+                  type="text"
+                  value={obsOutcome}
+                  onChange={(e) => setObsOutcome(e.target.value)}
+                  placeholder="Ej. Logró mantener la atención 20 min"
+                  className="w-full text-xs p-2 rounded-xl border border-purple-200 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickObsForm(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="primary" size="sm" disabled={isSubmittingObs} className="bg-purple-600 hover:bg-purple-700 font-bold">
+                {isSubmittingObs ? 'Guardando...' : 'Guardar Observación'}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* 1. Sesiones del Calendario para este día */}
+        {dayEvents.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">
+              Sesiones y Eventos de la Agenda ({dayEvents.length})
+            </span>
+            <div className="space-y-1.5">
+              {dayEvents.map((ev) => (
+                <div
+                  key={ev._id}
+                  className="p-3 rounded-2xl bg-sky-50/70 border border-sky-100 flex items-center justify-between text-xs"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <span className="text-lg">{ev.iconEmoji || '📅'}</span>
+                    <div>
+                      <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>{ev.title}</span>
+                        {ev.startTime && (
+                          <span className="text-[10px] font-bold text-sky-700 bg-sky-100/70 px-1.5 py-0.5 rounded-md">
+                            {ev.startTime}
+                          </span>
+                        )}
+                      </div>
+                      {ev.visualPrepNotes && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{ev.visualPrepNotes}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedEventId(ev._id);
+                      setObsDescription(`Evolución en sesión: ${ev.title}. `);
+                      setShowQuickObsForm(true);
+                    }}
+                    className="text-[11px] font-bold text-sky-700 hover:bg-sky-100 shrink-0"
+                  >
+                    📝 Nota
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2. Observaciones registradas para este día */}
+        {dayObservations.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">
+              Observaciones Registradas ({dayObservations.length})
+            </span>
+            <div className="space-y-2">
+              {dayObservations.map((obs) => (
+                <div
+                  key={obs._id}
+                  className="p-3.5 rounded-2xl bg-purple-50/50 border border-purple-100 text-xs space-y-1.5 shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-purple-900 capitalize bg-purple-100 px-2 py-0.5 rounded-lg text-[10px]">
+                        {obs.category}
+                      </span>
+                      {obs.author && (
+                        <span className="text-[10px] font-bold text-slate-500">
+                          por {obs.author.name} ({obs.author.role === 'professional' ? (obs.author.specialty || 'Profesional') : obs.author.role})
+                        </span>
+                      )}
+                    </div>
+                    {obs.scheduleEventId && (
+                      <span className="text-[10px] text-sky-700 font-bold bg-sky-50 px-1.5 py-0.5 rounded">
+                        🗓️ Sesión vinculada
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-slate-800 font-medium leading-relaxed">
+                    {obs.description}
+                  </p>
+
+                  {obs.supportsUsed && obs.supportsUsed.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {obs.supportsUsed.map((s, i) => (
+                        <span key={i} className="text-[10px] bg-white text-purple-800 border border-purple-200 px-2 py-0.5 rounded-md font-semibold">
+                          🌿 {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {obs.observedOutcome && (
+                    <p className="text-[11px] text-emerald-700 font-semibold pt-0.5">
+                      ✓ Resultado: {obs.observedOutcome}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Registros ABC del día */}
+        {dayAbcLogs.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-[11px] font-black uppercase text-amber-600 tracking-wider">
+              Registros ABC / Apoyo Brindado ({dayAbcLogs.length})
+            </span>
+            <div className="space-y-2">
+              {dayAbcLogs.map((abc) => (
+                <div
+                  key={abc._id}
+                  className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 text-xs space-y-1 shadow-sm"
+                >
+                  <div className="flex items-center justify-between text-amber-900 font-black">
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Contexto y Apoyo</span>
+                    </span>
+                    {abc.author && (
+                      <span className="text-[10px] font-normal text-slate-500">
+                        {abc.author.name}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-slate-700">
+                    <span className="font-bold text-slate-900">Antecedente:</span> {abc.antecedentContext}
+                  </p>
+                  <p className="text-slate-700">
+                    <span className="font-bold text-slate-900">Conducta:</span> {abc.observedBehavior}
+                  </p>
+                  <p className="text-emerald-800 font-medium">
+                    <span className="font-bold">Apoyo:</span> {abc.supportProvided}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {dayEvents.length === 0 && dayObservations.length === 0 && dayAbcLogs.length === 0 && (
+          <div className="p-4 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-400">
+            Sin sesiones ni observaciones clínicas registradas para esta fecha.
+          </div>
+        )}
+
+        {/* Enlace directo hacia el módulo de seguimiento */}
+        {childId && (
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-400">¿Quieres ver la evolución global?</span>
+            <Link
+              href={`/tracking?childId=${childId}`}
+              className="font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1"
+            >
+              <span>Ir a Módulo de Seguimiento</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Tarjeta de Patrones Detectados */}

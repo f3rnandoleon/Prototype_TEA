@@ -23,8 +23,8 @@
 | `routine.complete` |  Sí |  Sí |  Sí |  Sí (Marcar paso) |
 | `aac.use` |  Sí |  Sí |  Sí |  Sí (Comunicador) |
 | `aac.configure` |  Sí | ⚠️ Si concedido | ❌ No | ❌ No |
-| `activity.create` |  Sí |  Sí |  Sí | ❌ No |
-| `activity.assign` |  Sí |  Sí (A vinculados) |  Sí (A vinculados) | ❌ No |
+| `activity.create` |  Sí | ❌ No (Educativo) |  Sí | ❌ No |
+| `activity.assign` |  Sí | ❌ No (Educativo) |  Sí (A vinculados) | ❌ No |
 | `activity.complete` |  Sí (Asistir) |  Sí (Asistir) |  Sí (Asistir) |  Sí (Ejecutar) |
 | `observation.create` |  Sí |  Sí (Clínica/Terapéutica) |  Sí (Pedagógica) | ❌ No |
 | `observation.read` |  Sí (Todas) |  Sí (Autorizadas) |  Sí (Pedagógicas) | ❌ No |

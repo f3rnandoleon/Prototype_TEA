@@ -10,6 +10,7 @@ export interface IObservationDocument extends Document {
   supportsUsed: string[];
   observedOutcome?: string;
   visibility: UserRole[];
+  scheduleEventId?: Types.ObjectId;
   createdAt: Date;
 }
 
@@ -32,6 +33,7 @@ const ObservationSchema = new Schema<IObservationDocument>(
       enum: ['tutor', 'professional', 'teacher'],
       default: ['tutor', 'professional', 'teacher'],
     },
+    scheduleEventId: { type: Schema.Types.ObjectId, ref: 'ScheduleEvent', required: false },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Sparkles, AlertCircle } from 'lucide-react';
 import { ScallopedFlowerBadge } from './ScallopedFlowerBadge';
-import { IScheduleEvent, ISomaticLog } from '@/types';
+import { IScheduleEvent, ISomaticLog, IObservation, IABCLog } from '@/types';
 
 export interface CalendarStreak {
   id: string;
@@ -21,6 +21,8 @@ interface CalendarMonthViewProps {
   onSelectDate: (date: Date) => void;
   events?: IScheduleEvent[];
   somaticLogs?: ISomaticLog[];
+  observations?: IObservation[];
+  abcLogs?: IABCLog[];
   onOpenNewEventModal?: (defaultDate?: string) => void;
 }
 
@@ -31,6 +33,8 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
   onSelectDate,
   events = [],
   somaticLogs = [],
+  observations = [],
+  abcLogs = [],
   onOpenNewEventModal,
 }) => {
   const year = currentDate.getFullYear();
@@ -288,6 +292,16 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
             const logDateStr = new Date(l.date).toISOString().split('T')[0];
             return logDateStr === cell.dateStr;
           });
+          const hasObservations = observations.some((o) => {
+            const oDateStr = new Date(o.date).toISOString().split('T')[0];
+            return oDateStr === cell.dateStr;
+          });
+          const hasAbc = abcLogs.some((a) => {
+            const aDateStr = new Date(a.date).toISOString().split('T')[0];
+            return aDateStr === cell.dateStr;
+          });
+          const dayEvents = events.filter((e) => e.date === cell.dateStr);
+          const hasEvents = dayEvents.length > 0;
 
           // Clases de estilo para las rachas conectadas
           let streakBg = '';
@@ -341,7 +355,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   size="md"
                 />
               ) : (
-                /* Día regular del calendario */
+                /* Día regular del calendario con micro-indicadores de seguimiento */
                 <button
                   onClick={() => onSelectDate(cell.date)}
                   className={`relative z-10 w-8 h-8 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center font-bold text-xs sm:text-base transition-all select-none ${
@@ -353,11 +367,24 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                   }`}
                   aria-label={`Día ${cell.dateNumber}`}
                 >
-                  <span>{cell.dateNumber}</span>
+                  <span className="leading-tight">{cell.dateNumber}</span>
 
-                  {/* Indicador sutil de registro existente */}
-                  {hasSomatic && !isSelected && !streakInfo && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 -mt-0.5" />
+                  {/* Indicadores de integración entre seguimiento/evolución y calendario */}
+                  {!isSelected && (
+                    <div className="flex items-center gap-0.5 mt-0.5 pointer-events-none">
+                      {hasObservations && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-600 shadow-sm" title="Observación registrada" />
+                      )}
+                      {hasAbc && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-sm" title="Registro ABC de apoyo" />
+                      )}
+                      {hasEvents && !hasObservations && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-sm" title="Sesión / Evento" />
+                      )}
+                      {hasSomatic && !hasObservations && !hasAbc && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-sm" title="Registro somático" />
+                      )}
+                    </div>
                   )}
                 </button>
               )}
@@ -366,10 +393,10 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
         })}
       </div>
 
-      {/* Leyenda interactiva de colores y patrones */}
+      {/* Leyenda interactiva de colores y patrones integrados */}
       <div className="mt-6 pt-4 border-t border-rose-200/40 space-y-2">
         <div className="flex items-center justify-between text-xs text-slate-500 mb-2 font-bold">
-          <span>Patrones y Rachas del Mes:</span>
+          <span>Patrones y Seguimiento del Mes:</span>
           {onOpenNewEventModal && (
             <button
               onClick={() => onOpenNewEventModal(selectedDateStr)}
@@ -381,20 +408,25 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-bold">
-          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-white/60 border border-slate-100">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#fbcfe8] border border-rose-300" />
-            <span className="text-slate-700">Sensibilidad somática</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] sm:text-[11px] font-bold">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0" />
+            <span className="text-slate-700 truncate">Observaciones</span>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-white/60 border border-slate-100">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#e0e7ff] border border-indigo-300" />
-            <span className="text-slate-700">Período de terapia</span>
+          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="text-slate-700 truncate">Registros ABC</span>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-white/60 border border-slate-100">
-            <span className="w-3.5 h-3.5 rounded-full border-2 border-rose-300 bg-rose-50" />
-            <span className="text-slate-700">Anticipación programada</span>
+          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+            <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
+            <span className="text-slate-700 truncate">Eventos / Sesiones</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0" />
+            <span className="text-slate-700 truncate">Factores Somáticos</span>
           </div>
         </div>
       </div>

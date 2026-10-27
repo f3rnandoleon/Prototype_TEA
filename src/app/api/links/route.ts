@@ -81,6 +81,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Los profesionales clínicos no deben recibir permisos de actividades educativas (aula/docente)
+    const effectiveRole = targetUser.role === 'professional' || role === 'professional' ? 'professional' : role;
+    const sanitizedPermissions = effectiveRole === 'professional'
+      ? permissions.filter((p) => p !== 'activity.assign' && p !== 'activity.create')
+      : permissions;
+
     // Verificar si ya existe una vinculación
     const existing = await ChildAccessModel.findOne({
       childId,
@@ -91,8 +97,8 @@ export async function POST(req: NextRequest) {
       if (existing.status === 'revoked') {
         // Reactivar con nuevos permisos
         existing.status = 'pending';
-        existing.permissions = permissions;
-        existing.role = role;
+        existing.permissions = sanitizedPermissions;
+        existing.role = effectiveRole;
         await existing.save();
 
         await logAuditEvent({
@@ -100,7 +106,7 @@ export async function POST(req: NextRequest) {
           childId,
           action: 'LINK_REACTIVATED',
           resource: 'ChildAccess',
-          details: { targetUserId: targetUser._id.toString(), permissions },
+          details: { targetUserId: targetUser._id.toString(), permissions: sanitizedPermissions },
         });
 
         return NextResponse.json({ message: 'Invitación reenviada correctamente', link: existing });
@@ -116,9 +122,9 @@ export async function POST(req: NextRequest) {
       childId,
       userId: targetUser._id,
       invitedBy: session.userId,
-      role,
+      role: effectiveRole,
       status: 'pending',
-      permissions,
+      permissions: sanitizedPermissions,
     });
 
     await logAuditEvent({

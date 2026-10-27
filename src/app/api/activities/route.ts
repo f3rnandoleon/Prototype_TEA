@@ -118,6 +118,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
+    if (session.role === 'professional') {
+      return NextResponse.json(
+        { error: 'Acceso restringido: El catálogo de actividades educativas es de uso exclusivo para docentes y tutores.' },
+        { status: 403 }
+      );
+    }
+
     await connectDB();
 
     // Comprobar si existen plantillas; si no, inicializarlas
@@ -145,6 +152,13 @@ export async function POST(req: NextRequest) {
     const session = await getSessionUser(req);
     if (!session) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    if (session.role === 'professional') {
+      return NextResponse.json(
+        { error: 'Los profesionales clínicos no gestionan actividades educativas de aula; esta función corresponde a docentes y tutores.' },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

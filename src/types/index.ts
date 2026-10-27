@@ -262,6 +262,7 @@ export interface IObservation {
   observedOutcome?: string;
   visibility: UserRole[];
   author?: IUser;
+  scheduleEventId?: string;
   createdAt: Date;
 }
 

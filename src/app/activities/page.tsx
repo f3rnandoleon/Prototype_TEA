@@ -47,6 +47,12 @@ export default function ActivitiesHubPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (selectedChildId && typeof window !== 'undefined') {
+      localStorage.setItem('tea_selected_child_id', selectedChildId);
+    }
+  }, [selectedChildId]);
+
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -56,6 +62,10 @@ export default function ActivitiesHubPage() {
         return;
       }
       const meData = await meRes.json();
+      if (meData.user.role === 'professional') {
+        router.push('/professional');
+        return;
+      }
       setCurrentUser(meData.user);
 
       // Cargar actividades
@@ -71,7 +81,13 @@ export default function ActivitiesHubPage() {
         const childData = await childRes.json();
         setChildren(childData.children || []);
         if (childData.children?.length > 0) {
-          setSelectedChildId(childData.children[0]._id);
+          const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+          const qChildId = urlParams?.get('childId');
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('tea_selected_child_id') : null;
+          const match = childData.children.find((c: IChild) => c._id === qChildId) ||
+                        childData.children.find((c: IChild) => c._id === stored) ||
+                        childData.children[0];
+          setSelectedChildId(match._id);
         }
       }
     } catch (e) {

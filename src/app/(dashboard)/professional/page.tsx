@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Shield, Users, Activity, CheckCircle2, XCircle, ArrowRight, BookOpen, Sparkles, Calendar } from 'lucide-react';
+import { Shield, Users, Activity, CheckCircle2, XCircle, ArrowRight, BookOpen, Sparkles, Calendar, Clock } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -212,15 +212,15 @@ export default function ProfessionalDashboard() {
                     <div className="flex items-center gap-2">
                       <Link href={`/routines?childId=${child._id}`} className="flex-1">
                         <Button variant="outline" size="sm" className="w-full text-xs font-semibold gap-1">
-                          <Calendar className="w-3.5 h-3.5" />
+                          <Clock className="w-3.5 h-3.5" />
                           <span>Rutinas</span>
                         </Button>
                       </Link>
 
-                      <Link href={`/activities?childId=${child._id}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full text-xs font-semibold gap-1">
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>Actividades</span>
+                      <Link href={`/calendar?childId=${child._id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full text-xs font-semibold gap-1 text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Calendario</span>
                         </Button>
                       </Link>
                     </div>

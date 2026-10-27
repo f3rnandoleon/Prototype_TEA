@@ -52,13 +52,18 @@ export const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
   const currentRole = user?.role || 'tutor';
 
-  const navLinks = [
+  const allNavLinks = [
     { href: `/${currentRole}`, label: 'Mi Panel', icon: Shield, badgeColor: 'text-emerald-700' },
     { href: '/routines', label: 'Rutinas', icon: Clock, badgeColor: 'text-emerald-700' },
     { href: '/calendar', label: 'Calendario', icon: Calendar, badgeColor: 'text-rose-700' },
     { href: '/activities', label: 'Actividades', icon: BookOpen, badgeColor: 'text-indigo-700' },
     { href: '/tracking', label: 'Seguimiento', icon: Activity, badgeColor: 'text-sky-700' },
   ];
+
+  // El profesional clínico no accede a actividades educativas (exclusivas para docentes y tutores)
+  const navLinks = allNavLinks.filter(
+    (link) => !(currentRole === 'professional' && link.href === '/activities')
+  );
 
   return (
     <>
