@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { POST as assignActivityPOST } from '@/app/api/activities/assign/route';
+import { POST as assignActivityPOST, DELETE as assignActivityDELETE } from '@/app/api/activities/assign/route';
 import { GET as activitiesGET, POST as activitiesPOST } from '@/app/api/activities/route';
+import { PUT as activityPUT, DELETE as activityDELETE } from '@/app/api/activities/[id]/route';
 import { GET as calendarGET } from '@/app/api/calendar/route';
 import { getSessionUser } from '@/lib/auth/session';
 import { authorizeChildAccess } from '@/lib/security/policies';
@@ -75,6 +76,8 @@ vi.mock('@/models/Activity', () => ({
     find: vi.fn(),
     countDocuments: vi.fn().mockResolvedValue(3),
     create: vi.fn(),
+    findById: vi.fn(),
+    findByIdAndDelete: vi.fn(),
   },
 }));
 
@@ -82,6 +85,10 @@ vi.mock('@/models/ActivityAssignment', () => ({
   ActivityAssignmentModel: {
     find: vi.fn(),
     create: vi.fn(),
+    findById: vi.fn(),
+    findOne: vi.fn(),
+    findByIdAndDelete: vi.fn(),
+    deleteMany: vi.fn(),
   },
 }));
 
@@ -177,6 +184,90 @@ describe('Integración entre Módulos: Separación de Roles (Doctor vs Docente)'
 
     // Debe pasar la validación de rol y proceder a la base de datos (201)
     expect(res.status).toBe(201);
+  });
+
+  it('permite a un docente autorizado desasignar una actividad previamente asignada', async () => {
+    (getSessionUser as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: 'docente_456',
+      role: 'teacher',
+      email: 'docente@colegio.edu',
+    });
+
+    (ActivityAssignmentModel.findById as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      _id: { toString: () => 'asg_123' },
+      childId: { toString: () => 'child_mati' },
+      activityId: { toString: () => 'act_1' },
+    });
+
+    (authorizeChildAccess as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      authorized: true,
+      isOwner: false,
+    });
+
+    (ActivityAssignmentModel.findByIdAndDelete as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      _id: 'asg_123',
+    });
+
+    const req = new NextRequest('http://localhost:3000/api/activities/assign?id=asg_123', {
+      method: 'DELETE',
+    });
+    const res = await assignActivityDELETE(req);
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.message).toContain('desasignada correctamente');
+  });
+
+  it('permite a un docente/tutor editar una actividad educativa adaptada', async () => {
+    (getSessionUser as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: 'docente_456',
+      role: 'teacher',
+      email: 'docente@colegio.edu',
+    });
+
+    const mockActivity = {
+      _id: 'act_1',
+      title: 'Título Original',
+      activityType: 'association',
+      skillType: 'Atención',
+      difficulty: 'facil',
+      instructions: 'Instrucciones',
+      config: { pairs: [] },
+      save: vi.fn().mockResolvedValue(true),
+    };
+
+    (ActivityModel.findById as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockActivity);
+
+    const req = new NextRequest('http://localhost:3000/api/activities/act_1', {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: 'Título Actualizado con Pictogramas',
+        description: 'Nueva descripción adaptada',
+        skillType: 'Reconocimiento Emocional',
+        activityType: 'association',
+        difficulty: 'medio',
+        instructions: 'Nuevas instrucciones amables',
+        config: {
+          pairs: [
+            {
+              id: 'p1',
+              leftText: 'Feliz',
+              leftImage: 'https://api.arasaac.org/api/pictograms/2410?download=false',
+              rightText: 'Emoción',
+              rightImage: 'https://api.arasaac.org/api/pictograms/2410?download=false',
+            },
+          ],
+        },
+      }),
+    });
+
+    const res = await activityPUT(req, { params: { id: 'act_1' } });
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.message).toContain('actualizada exitosamente');
+    expect(mockActivity.title).toBe('Título Actualizado con Pictogramas');
+    expect(mockActivity.save).toHaveBeenCalled();
   });
 });
 

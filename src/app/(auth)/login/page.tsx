@@ -142,35 +142,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Accesos rápidos de prueba de roles */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-3">
-              Cuentas de Demostración para Pruebas
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setDemoAccount('tutor')}
-                className="p-2 text-xs font-semibold rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-colors"
-              >
-                Tutor
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoAccount('professional')}
-                className="p-2 text-xs font-semibold rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-colors"
-              >
-                Profesional
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemoAccount('teacher')}
-                className="p-2 text-xs font-semibold rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors"
-              >
-                Docente
-              </button>
-            </div>
-          </div>
+
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-600">
