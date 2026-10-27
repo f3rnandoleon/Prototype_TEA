@@ -106,28 +106,28 @@ export async function GET(req: NextRequest) {
       const ratio = Math.round((poorSleepWithSensory.length / poorSleepDays.length) * 100);
       patternInsights.push({
         type: 'correlation',
-        title: 'Correlación Sueño y Sensibilidad',
-        description: `En el ${ratio}% de los días con sueño inquieto o menor a 7 horas, se registraron aumentos en sensibilidad auditiva o molestia somática.`,
+        title: 'Correlación Sueño y Sobrecarga Sensorial',
+        description: `En el ${ratio}% de los días con descanso insuficiente o inquieto, se observó mayor sensibilidad auditiva o molestia somática. Se recomienda incorporar apoyos sensoriales y pausas suaves durante las primeras horas de la mañana.`,
         icon: '🌙',
         severity: ratio > 50 ? 'warning' : 'info',
       });
     }
 
-    // Patrón 2: Impacto de apoyos de regulación
+    // Patrón 2: Impacto de apoyos de autorregulación
     const daysWithCalmSupports = somaticLogs.filter(
       (l) => l.supportsUsed && l.supportsUsed.length > 0
     );
     if (daysWithCalmSupports.length > 0) {
       patternInsights.push({
         type: 'support',
-        title: 'Eficacia de Apoyos y Rincón de Calma',
-        description: `El uso de protectores auditivos y rincón de calma favoreció estados de tranquilidad en la mayoría de los registros.`,
+        title: 'Eficacia de Herramientas de Autorregulación',
+        description: `El uso oportuno de auriculares reductores, rincón de calma y pausas propioceptivas favoreció el retorno a la zona de regulación en la gran mayoría de los registros.`,
         icon: '🌿',
         severity: 'success',
       });
     }
 
-    // Patrón 3: Racha de bienestar basal
+    // Patrón 3: Período continuo de estabilidad basal
     let currentCalmStreak = 0;
     let maxCalmStreak = 0;
     somaticLogs.forEach((l) => {
@@ -142,8 +142,8 @@ export async function GET(req: NextRequest) {
     if (maxCalmStreak >= 2) {
       patternInsights.push({
         type: 'streak',
-        title: 'Racha de Estabilidad Basal',
-        description: `Se detectó una secuencia continua de ${maxCalmStreak} días en zona de alta regulación y bienestar físico.`,
+        title: 'Período Continuo de Estabilidad Basal',
+        description: `Se detectó una secuencia de ${maxCalmStreak} días continuos en zona de regulación positiva y bienestar somático. Es una ventana propicia para consolidar nuevas habilidades.`,
         icon: '✨',
         severity: 'success',
       });
@@ -157,12 +157,24 @@ export async function GET(req: NextRequest) {
       if (therapyObservations.length > 0) {
         patternInsights.push({
           type: 'evolution',
-          title: 'Evolución Positiva en Sesiones Registradas',
-          description: `Se han documentado ${therapyObservations.length} observaciones en este período con resultados y apoyos aplicados exitosamente.`,
+          title: 'Evolución y Logros en Sesiones Registradas',
+          description: `Se han documentado ${therapyObservations.length} notas de evolución en este período con apoyos específicos y respuestas favorables.`,
           icon: '📝',
           severity: 'info',
         });
       }
+    }
+
+    // Patrón 5: Anticipación para eventos no rutinarios
+    const upcomingNonRoutine = events.filter((e) => e.isNonRoutine && e.alertLevel !== 'informativo');
+    if (upcomingNonRoutine.length > 0) {
+      patternInsights.push({
+        type: 'anticipation',
+        title: 'Recomendación de Anticipación Visual',
+        description: `Se identificaron ${upcomingNonRoutine.length} eventos especiales en la agenda. Se recomienda reforzar con historias sociales o tablero visual con 24-48 horas de anticipación.`,
+        icon: '🗓️',
+        severity: 'info',
+      });
     }
 
     return NextResponse.json({

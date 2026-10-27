@@ -186,22 +186,22 @@ function CalendarPageContent() {
   const selectedChild = children.find((c) => c._id === selectedChildId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50/30 via-slate-50 to-purple-50/20 text-slate-800 pb-32 md:pb-16">
+    <div className="min-h-screen bg-slate-50 text-slate-800 pb-32 md:pb-16">
       <Navbar user={currentUser || undefined} />
 
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-4 sm:space-y-6">
         {/* Barra superior de control y selección de niño optimizada para móvil */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-2 border-b border-rose-100">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
           <div className="flex items-center space-x-2.5">
-            <span className="p-2 rounded-2xl bg-rose-100 text-rose-700 shadow-sm shrink-0">
+            <span className="p-2.5 rounded-2xl bg-indigo-100 text-indigo-700 shadow-sm shrink-0">
               <CalendarIcon className="w-5 h-5" />
             </span>
             <div>
               <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-                Calendario y Patrones
+                Calendario y Anticipación Sensorial
               </h1>
               <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                Anticipación visual y seguimiento sensorial
+                Planificación estructurada, sesiones y monitoreo del bienestar
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ function CalendarPageContent() {
               <select
                 value={selectedChildId}
                 onChange={(e) => setSelectedChildId(e.target.value)}
-                className="flex-1 sm:w-auto text-xs font-black px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-rose-200 bg-white shadow-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                className="flex-1 sm:w-auto text-xs font-black px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               >
                 {children.map((c) => (
                   <option key={c._id} value={c._id}>
@@ -222,27 +222,27 @@ function CalendarPageContent() {
               </select>
             )}
 
-            {/* Botón para añadir evento / racha */}
+            {/* Botón para añadir evento / anticipación */}
             <Button
               onClick={() => handleOpenNewEvent()}
               variant="primary"
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1 shadow-sm shrink-0 px-3 py-2 text-xs"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-1.5 shadow-sm shrink-0 px-3.5 py-2 text-xs rounded-2xl"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Evento</span>
+              <span>+ Evento o Período</span>
             </Button>
           </div>
         </div>
 
         {/* Selector de modo de vista para pantallas móviles (Sticky) */}
-        <div className="lg:hidden sticky top-16 z-30 py-1 bg-gradient-to-b from-rose-50/80 via-rose-50/60 to-transparent backdrop-blur-sm -mx-3 px-3">
-          <div className="flex items-center justify-center p-1 rounded-2xl bg-white/95 backdrop-blur-md border border-rose-200/80 shadow-md max-w-sm mx-auto">
+        <div className="lg:hidden sticky top-16 z-30 py-1 bg-slate-50/90 backdrop-blur-md -mx-3 px-3">
+          <div className="flex items-center justify-center p-1 rounded-2xl bg-white border border-slate-200 shadow-sm max-w-sm mx-auto">
             <button
               onClick={() => setViewMode('month')}
               className={`flex-1 py-2 px-3 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                 viewMode === 'month'
-                  ? 'bg-[#9f1239] text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -253,7 +253,7 @@ function CalendarPageContent() {
               onClick={() => setViewMode('tracker')}
               className={`flex-1 py-2 px-3 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
                 viewMode === 'tracker'
-                  ? 'bg-[#9f1239] text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -265,20 +265,20 @@ function CalendarPageContent() {
 
         {/* Contenido principal: Grid de 2 columnas en Desktop o según pestaña en móvil */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* COLUMNA IZQUIERDA: Vista Mensual (Imagen 1) */}
+          {/* COLUMNA IZQUIERDA: Vista Mensual */}
           <section
             className={`lg:col-span-6 xl:col-span-6 space-y-4 ${
               viewMode === 'tracker' ? 'hidden lg:block' : 'block'
             }`}
           >
-            <div className="bg-white/40 backdrop-blur-md rounded-[2.2rem] sm:rounded-[2.8rem] p-1.5 sm:p-4 border border-rose-100 shadow-sm">
-              <div className="px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs text-slate-500 font-bold">
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  <span>Rachas y anticipación mensual</span>
+            <div className="bg-white rounded-[2.2rem] sm:rounded-[2.8rem] p-2 sm:p-4 border border-slate-200/80 shadow-sm">
+              <div className="px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs text-slate-500 font-bold border-b border-slate-100 mb-2">
+                <span className="flex items-center gap-1.5 text-indigo-700">
+                  <CalendarIcon className="w-4 h-4" />
+                  <span>Períodos de anticipación y agenda</span>
                 </span>
-                <span className="text-slate-400">
-                  {selectedChild ? selectedChild.name : 'Niño'}
+                <span className="text-slate-500 font-bold bg-slate-100 px-2.5 py-0.5 rounded-lg">
+                  {selectedChild ? selectedChild.name : 'Estudiante'}
                 </span>
               </div>
 
@@ -288,7 +288,6 @@ function CalendarPageContent() {
                 selectedDate={selectedDate}
                 onSelectDate={(newDate) => {
                   setSelectedDate(newDate);
-                  // En pantallas móviles cambiamos a vista tracker para registrar síntomas
                   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                     setViewMode('tracker');
                   }
@@ -302,13 +301,13 @@ function CalendarPageContent() {
             </div>
           </section>
 
-          {/* COLUMNA DERECHA: Registro de Síntomas y Detección de Patrones (Imagen 2) */}
+          {/* COLUMNA DERECHA: Registro Sensorial y Factores Diarios */}
           <section
             className={`lg:col-span-6 xl:col-span-6 ${
               viewMode === 'month' ? 'hidden lg:block' : 'block'
             }`}
           >
-            <div className="bg-white/70 backdrop-blur-md rounded-[2.2rem] sm:rounded-[2.8rem] p-4 sm:p-7 border border-rose-100 shadow-xl shadow-rose-100/30">
+            <div className="bg-white rounded-[2.2rem] sm:rounded-[2.8rem] p-4 sm:p-7 border border-slate-200/80 shadow-sm">
               <DailyPatternTracker
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}

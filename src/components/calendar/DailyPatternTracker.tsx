@@ -74,83 +74,83 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
   onSaveDay,
   patternInsights = [],
 }) => {
-  // Lista de síntomas y factores adaptados al contexto TEA basados en la imagen 2
+  // Lista de sensibilidades y factores TEA
   const factorsList: FactorOption[] = [
     {
-      id: 'molestia_estomago',
-      label: 'Molestia abdominal o somática',
-      icon: <Activity className="w-5 h-5 text-rose-600" />,
-      iconBg: 'bg-rose-100/70',
-      category: 'somatic',
-    },
-    {
       id: 'sensibilidad_ruido',
-      label: 'Sensibilidad al ruido / Bullicio',
+      label: 'Sensibilidad auditiva (Ruido imprevisto / Bullicio)',
       icon: <Volume2 className="w-5 h-5 text-indigo-600" />,
-      iconBg: 'bg-indigo-100/70',
+      iconBg: 'bg-indigo-50',
       category: 'sensory',
     },
     {
       id: 'sensibilidad_luces',
-      label: 'Sensibilidad visual / Luces intensas',
+      label: 'Sensibilidad visual (Luces intensas / Pantallas)',
       icon: <Sun className="w-5 h-5 text-amber-600" />,
-      iconBg: 'bg-amber-100/70',
+      iconBg: 'bg-amber-50',
       category: 'sensory',
     },
     {
       id: 'texturas_ropa',
-      label: 'Molestia táctil (Costuras / Texturas)',
+      label: 'Hipersensibilidad táctil (Costuras / Texturas)',
       icon: <Shirt className="w-5 h-5 text-purple-600" />,
-      iconBg: 'bg-purple-100/70',
+      iconBg: 'bg-purple-50',
       category: 'sensory',
     },
     {
+      id: 'molestia_estomago',
+      label: 'Molestia somática o abdominal',
+      icon: <Activity className="w-5 h-5 text-rose-500" />,
+      iconBg: 'bg-rose-50',
+      category: 'somatic',
+    },
+    {
       id: 'insomnio',
-      label: 'Dificultad de sueño / Insomnio',
+      label: 'Descanso insuficiente / Despertares nocturnos',
       icon: <Moon className="w-5 h-5 text-sky-600" />,
-      iconBg: 'bg-sky-100/70',
+      iconBg: 'bg-sky-50',
       category: 'somatic',
     },
     {
       id: 'selectividad_comida',
-      label: 'Selectividad o rechazo de comida',
+      label: 'Selectividad alimentaria (Rechazo por textura o color)',
       icon: <Utensils className="w-5 h-5 text-emerald-600" />,
-      iconBg: 'bg-emerald-100/70',
+      iconBg: 'bg-emerald-50',
       category: 'somatic',
     },
     {
       id: 'cambio_rutina',
-      label: 'Desregulación por cambio de rutina',
+      label: 'Desregulación por cambio imprevisto en la rutina',
       icon: <Shuffle className="w-5 h-5 text-amber-600" />,
-      iconBg: 'bg-amber-100/70',
+      iconBg: 'bg-amber-50',
       category: 'routine',
     },
     {
       id: 'bateria_baja',
-      label: 'Sobrecarga / Batería sensorial baja',
+      label: 'Sobrecarga sensorial / Batería social baja',
       icon: <Battery className="w-5 h-5 text-rose-600" />,
-      iconBg: 'bg-rose-100/70',
+      iconBg: 'bg-rose-50',
       category: 'sensory',
     },
     {
       id: 'stimming_intenso',
-      label: 'Búsqueda propioceptiva / Stimming alto',
+      label: 'Búsqueda propioceptiva / Movimiento regulatorio (Stimming)',
       icon: <Sparkles className="w-5 h-5 text-teal-600" />,
-      iconBg: 'bg-teal-100/70',
+      iconBg: 'bg-teal-50',
       category: 'sensory',
     },
   ];
 
-  // Estados de ánimo con emojis y expresiones (idéntico a la sección de la imagen 2)
+  // Estados de ánimo y regulación (Zonas de Regulación TEA)
   const moodList = [
-    { id: 'ansioso', emoji: '😟', label: 'Sobrecargado / Ansioso', bg: 'bg-sky-50' },
-    { id: 'radiante', emoji: '🤩', label: 'Radiante / Motivado', bg: 'bg-amber-50' },
-    { id: 'carinoso', emoji: '🥰', label: 'Conectado / Cariñoso', bg: 'bg-rose-50' },
-    { id: 'alerta', emoji: '😮', label: 'Asombrado / Alerta', bg: 'bg-amber-50' },
-    { id: 'jugueton', emoji: '🤪', label: 'Juguetón / Activo', bg: 'bg-yellow-50' },
-    { id: 'tranquilo', emoji: '😊', label: 'Tranquilo / Regulado', bg: 'bg-emerald-50' },
-    { id: 'cansado', emoji: '😴', label: 'Cansado / Con sueño', bg: 'bg-slate-100' },
-    { id: 'triste', emoji: '😢', label: 'Triste / Frustrado', bg: 'bg-blue-50' },
+    { id: 'tranquilo', emoji: '😊', label: 'Regulado y en Calma', bg: 'bg-emerald-50' },
+    { id: 'radiante', emoji: '🤩', label: 'Conectado y Motivado', bg: 'bg-amber-50' },
+    { id: 'carinoso', emoji: '🥰', label: 'Receptivo y Participativo', bg: 'bg-sky-50' },
+    { id: 'ansioso', emoji: '😟', label: 'Sobrecargado / Con Ansiedad', bg: 'bg-amber-50' },
+    { id: 'alerta', emoji: '😮', label: 'Hipersensible / En Alerta', bg: 'bg-yellow-50' },
+    { id: 'jugueton', emoji: '🤪', label: 'Muy Activo / Búsqueda Motora', bg: 'bg-yellow-50' },
+    { id: 'cansado', emoji: '😴', label: 'Fatigado / Batería Baja', bg: 'bg-slate-100' },
+    { id: 'triste', emoji: '😢', label: 'Desregulado / Frustrado', bg: 'bg-rose-50' },
   ];
 
   // Estado local para los síntomas y estado de ánimo del día seleccionado
@@ -283,21 +283,18 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
 
   return (
     <div className="space-y-6 max-w-xl mx-auto">
-      {/* Título idéntico a la imagen de referencia: "Registra síntomas, detecta patrones" */}
+      {/* Título adaptado a Autismo y Bienestar */}
       <div className="space-y-1">
-        <h1 className="text-2xl sm:text-4xl font-extrabold text-[#701a3c] tracking-tight leading-tight">
-          Registra síntomas,
-          <br />
-          detecta patrones
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+          Monitoreo Sensorial y Factores Diarios
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 font-medium">
-          Identifica factores ambientales, malestares físicos y autorregulación día a día.
+          Registra el estado basal, sensibilidades del entorno y apoyos que favorecen la autorregulación.
         </p>
       </div>
 
-      {/* Selector semanal idéntico a la imagen 2:
-          Fila LUN, MAR, MIÉ, JUE, VIE, SÁB, DOM con círculo sólido en el día activo */}
-      <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 shadow-sm border border-slate-100 flex items-center justify-between">
+      {/* Selector semanal con fila LUN a DOM y círculo activo */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 shadow-sm border border-slate-200/80 flex items-center justify-between">
         {weekDays.map((wDay) => {
           const isSelected = isSameDay(wDay.date, selectedDate);
           return (
@@ -312,7 +309,7 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
               <div
                 className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-base font-black transition-all ${
                   isSelected
-                    ? 'bg-[#9f1239] text-white shadow-md shadow-rose-900/20 scale-105 ring-2 ring-rose-200'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 scale-105 ring-2 ring-indigo-200'
                     : 'text-slate-700 hover:bg-slate-100'
                 }`}
               >
@@ -323,7 +320,7 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
         })}
       </div>
 
-      {/* Lista de tarjetas de factores y síntomas con casilla de verificación */}
+      {/* Lista de tarjetas de factores y sensibilidades */}
       <div className="space-y-2.5 sm:space-y-3">
         {factorsList.map((factor) => {
           const isChecked = selectedSymptoms.includes(factor.id);
@@ -334,8 +331,8 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
               onClick={() => handleToggleFactor(factor.id)}
               className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl transition-all flex items-center justify-between cursor-pointer border select-none active:scale-[0.98] ${
                 isChecked
-                  ? 'bg-white shadow-md shadow-rose-900/5 border-rose-200 -translate-y-0.5'
-                  : 'bg-white/90 hover:bg-white shadow-sm border-slate-100 hover:border-slate-200'
+                  ? 'bg-indigo-50/40 shadow-sm border-indigo-200 -translate-y-0.5'
+                  : 'bg-white hover:bg-slate-50 shadow-sm border-slate-200/80 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center space-x-3">
@@ -348,17 +345,16 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
                   {factor.icon}
                 </div>
 
-                <span className="text-xs sm:text-base font-bold text-slate-800 leading-snug">
+                <span className="text-xs sm:text-sm font-bold text-slate-800 leading-snug">
                   {factor.label}
                 </span>
               </div>
 
-              {/* Círculo de selección interactivo:
-                  Lleno con check si está activo, aro suave si está inactivo (como en imagen 2) */}
+              {/* Círculo de selección interactivo */}
               <div
                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-all shrink-0 ml-2 ${
                   isChecked
-                    ? 'bg-[#9f1239] text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-sm'
                     : 'border-2 border-slate-300 bg-white group-hover:border-slate-400'
                 }`}
               >
@@ -369,13 +365,13 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
         })}
       </div>
 
-      {/* Sección: Estados de ánimo (idéntico a la cuadrícula de emojis de la imagen 2) */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm border border-slate-100 space-y-3 sm:space-y-4">
+      {/* Sección: Estados de ánimo y regulación */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm border border-slate-200/80 space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base sm:text-lg font-black text-slate-800 tracking-tight">
-            Estados de ánimo
+            Estado de Regulación y Ánimo
           </h3>
-          <span className="text-[11px] sm:text-xs text-slate-400 font-semibold truncate max-w-[160px]">
+          <span className="text-[11px] sm:text-xs text-indigo-700 font-bold truncate max-w-[180px] bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
             {moodList.find((m) => m.id === selectedMood)?.label}
           </span>
         </div>
@@ -393,16 +389,16 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
                   mood.bg
                 } ${
                   isSelected
-                    ? 'scale-105 sm:scale-110 shadow-md ring-2 ring-amber-400/80 ring-offset-2'
-                    : 'hover:scale-105 hover:bg-amber-50/50'
+                    ? 'scale-105 sm:scale-110 shadow-md ring-2 ring-indigo-400 ring-offset-2'
+                    : 'hover:scale-105 hover:bg-slate-100'
                 }`}
                 title={mood.label}
               >
                 <span>{mood.emoji}</span>
 
-                {/* Insignia pequeña de check en la esquina inferior derecha como en la imagen 2 */}
+                {/* Insignia de check en la esquina inferior derecha */}
                 {isSelected && (
-                  <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-sm border-2 border-white">
+                  <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm border-2 border-white">
                     <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" />
                   </div>
                 )}
@@ -413,7 +409,7 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
       </div>
 
       {/* Observaciones del día */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-2">
+      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-2">
         <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
           Nota u observación del día
         </label>
@@ -423,7 +419,7 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
           onChange={(e) => setWellbeingNote(e.target.value)}
           onBlur={() => triggerAutoSave(selectedSymptoms, selectedMood, wellbeingNote)}
           placeholder="Escribe detalles del estado basal, apoyos que sirvieron o eventos especiales..."
-          className="w-full text-xs sm:text-sm p-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+          className="w-full text-xs sm:text-sm p-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
         />
       </div>
 
@@ -438,7 +434,7 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
       </div>
 
       {/* SECCIÓN INTEGRADA: Seguimiento y Evolución del Día (Reflejado en Calendario) */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-rose-100 space-y-4">
+      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
@@ -728,21 +724,21 @@ export const DailyPatternTracker: React.FC<DailyPatternTrackerProps> = ({
         )}
       </div>
 
-      {/* Tarjeta de Patrones Detectados */}
+      {/* Tarjeta de Patrones y Recomendaciones TEA Detectadas */}
       {patternInsights.length > 0 && (
-        <div className="p-5 rounded-3xl bg-gradient-to-br from-purple-50 to-rose-50 border border-purple-200/70 space-y-3">
-          <div className="flex items-center space-x-2 text-purple-900 font-black text-sm">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>Patrones Inteligentes Detectados</span>
+        <div className="p-5 rounded-3xl bg-gradient-to-br from-sky-50 via-indigo-50/40 to-emerald-50/40 border border-indigo-100/80 space-y-3">
+          <div className="flex items-center space-x-2 text-indigo-950 font-black text-sm">
+            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <span>Patrones Sensoriales y Recomendaciones TEA</span>
           </div>
 
           <div className="space-y-2.5">
             {patternInsights.map((insight, idx) => (
               <div
                 key={idx}
-                className="p-3.5 rounded-2xl bg-white/80 border border-purple-100 text-xs text-slate-700 space-y-1 shadow-sm"
+                className="p-3.5 rounded-2xl bg-white border border-slate-200/80 text-xs text-slate-700 space-y-1 shadow-sm"
               >
-                <div className="flex items-center gap-2 font-bold text-purple-950">
+                <div className="flex items-center gap-2 font-black text-indigo-950">
                   <span>{insight.icon}</span>
                   <span>{insight.title}</span>
                 </div>

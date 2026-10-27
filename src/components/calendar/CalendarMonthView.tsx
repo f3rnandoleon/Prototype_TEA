@@ -11,7 +11,7 @@ export interface CalendarStreak {
   endDate: string; // YYYY-MM-DD
   type: 'sensibility' | 'therapy' | 'calm' | 'scheduled';
   title: string;
-  color: 'rose' | 'lavender' | 'teal' | 'outlined';
+  color: 'rose' | 'lavender' | 'teal' | 'outlined' | 'amber' | 'indigo' | 'sky';
 }
 
 interface CalendarMonthViewProps {
@@ -57,7 +57,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
     onMonthChange(new Date(year, month + 1, 1));
   };
 
-  // Construir rachas (streaks) a partir de eventos o de los registros de la bitácora
+  // Construir períodos continuos y anticipaciones (streaks) a partir de eventos o de la bitácora
   const streaks: CalendarStreak[] = useMemo(() => {
     const list: CalendarStreak[] = [];
 
@@ -70,13 +70,12 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
           endDate: ev.endDate,
           type: ev.alertLevel === 'cambio_fuerte' ? 'sensibility' : 'therapy',
           title: ev.title,
-          color: ev.badgeStyle === 'outlined' ? 'outlined' : (ev.badgeColor === 'rose' ? 'rose' : ev.badgeColor === 'teal' ? 'teal' : 'lavender'),
+          color: ev.badgeStyle === 'outlined' ? 'outlined' : (ev.badgeColor === 'rose' ? 'rose' : ev.badgeColor === 'teal' ? 'teal' : ev.badgeColor === 'amber' ? 'amber' : 'lavender'),
         });
       }
     });
 
-    // 2. Si no hay eventos con rango para el mes, generamos rachas visuales adaptadas de la muestra
-    // Por ejemplo: días con sensibilidad (rosa) y días de terapias/calma (lavanda)
+    // 2. Si no hay eventos con rango para el mes, generamos períodos demostrativos de anticipación TEA
     if (list.length === 0) {
       const yearMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
       list.push({
@@ -84,15 +83,15 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
         startDate: `${yearMonth}-02`,
         endDate: `${yearMonth}-06`,
         type: 'sensibility',
-        title: 'Período de sensibilidad somática',
-        color: 'rose',
+        title: 'Semana de Anticipación y Adaptación Escolar',
+        color: 'rose', // Se renderiza en azul cielo (sky)
       });
       list.push({
         id: 'streak-demo-2',
         startDate: `${yearMonth}-12`,
         endDate: `${yearMonth}-13`,
         type: 'therapy',
-        title: 'Sesiones de Fonoaudiología y Terapia',
+        title: 'Bloque de Fonoaudiología y Comunicación',
         color: 'lavender',
       });
       list.push({
@@ -100,23 +99,23 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
         startDate: `${yearMonth}-16`,
         endDate: `${yearMonth}-17`,
         type: 'therapy',
-        title: 'Terapia Ocupacional e Integración',
+        title: 'Terapia Ocupacional e Integración Sensorial',
         color: 'lavender',
       });
       list.push({
         id: 'streak-demo-4',
-        startDate: `${yearMonth}-28`,
-        endDate: `${yearMonth}-31`,
+        startDate: `${yearMonth}-25`,
+        endDate: `${yearMonth}-28`,
         type: 'scheduled',
-        title: 'Anticipación: Transición de rutina',
-        color: 'outlined',
+        title: 'Período de Calma y Descompresión Sensorial',
+        color: 'teal',
       });
     }
 
     return list;
   }, [events, year, month]);
 
-  // Mapa de eventos con insignia de flor (como el día 14 en la imagen)
+  // Mapa de eventos con insignia neuroafirmativa destacada
   const flowerBadgesMap = useMemo(() => {
     const map = new Map<string, { label: string; color: 'purple' | 'rose' | 'teal' | 'indigo' | 'amber'; event: IScheduleEvent }>();
     
@@ -124,24 +123,24 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
       if (ev.badgeStyle === 'flower') {
         map.set(ev.date, {
           label: ev.badgeLabel || ev.title.split(' ')[0].toUpperCase(),
-          color: (ev.badgeColor as any) || 'purple',
+          color: (ev.badgeColor as any) || 'indigo',
           event: ev,
         });
       }
     });
 
-    // Si para el mes actual no hay evento de flor configurado, colocamos el de demostración en el día 14
+    // Si para el mes actual no hay evento configurado, colocamos uno de anticipación en el día 14
     const defaultFlowerDate = `${year}-${String(month + 1).padStart(2, '0')}-14`;
     if (!map.has(defaultFlowerDate)) {
       map.set(defaultFlowerDate, {
         label: 'TERAPIA',
-        color: 'purple',
+        color: 'indigo',
         event: {
           _id: 'default-flower',
           childId: '',
-          title: 'Sesión de Terapia Especial',
+          title: 'Sesión de Terapia Especializada',
           date: defaultFlowerDate,
-          iconEmoji: '🌸',
+          iconEmoji: '🧩',
           isNonRoutine: true,
           alertLevel: 'informativo',
           createdBy: '',
@@ -236,30 +235,26 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
   const selectedDateStr = selectedDate.toISOString().split('T')[0];
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-b from-rose-50/40 via-purple-50/20 to-teal-50/30 p-3 sm:p-7 border border-rose-100/80 shadow-xl shadow-rose-200/20 max-w-xl mx-auto backdrop-blur-xl">
-      {/* Fondo con resplandores suaves tipo app móvil premium */}
-      <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-rose-200/30 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-purple-200/30 blur-3xl pointer-events-none" />
-
+    <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-white p-3 sm:p-7 border border-slate-200/90 shadow-sm max-w-xl mx-auto">
       {/* Encabezado del Mes: < Marzo > */}
       <div className="flex items-center justify-between px-1 sm:px-3 py-1 sm:py-2 mb-2 sm:mb-4">
         <button
           onClick={handlePrevMonth}
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/80 active:scale-90 transition-all shadow-sm border border-slate-200/50"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:scale-90 transition-all border border-slate-200"
           aria-label="Mes anterior"
           id="btn-prev-month"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <h2 className="text-xl sm:text-3xl font-extrabold text-slate-800 tracking-tight select-none">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight select-none">
           {monthNames[month]}
-          <span className="text-slate-400 font-medium text-base sm:text-lg ml-2">{year}</span>
+          <span className="text-slate-400 font-semibold text-base sm:text-lg ml-2">{year}</span>
         </h2>
 
         <button
           onClick={handleNextMonth}
-          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/80 active:scale-90 transition-all shadow-sm border border-slate-200/50"
+          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:scale-90 transition-all border border-slate-200"
           aria-label="Mes siguiente"
           id="btn-next-month"
         >
@@ -267,14 +262,12 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
         </button>
       </div>
 
-      {/* Días de la semana en mayúsculas estilo imagen de referencia */}
+      {/* Días de la semana en mayúsculas accesibles */}
       <div className="grid grid-cols-7 mb-3 text-center">
-        {daysOfWeek.map((dayName, idx) => (
+        {daysOfWeek.map((dayName) => (
           <div
             key={dayName}
-            className={`text-[11px] sm:text-xs font-black tracking-widest py-1 select-none ${
-              idx >= 5 ? 'text-rose-400' : 'text-slate-400'
-            }`}
+            className="text-[11px] sm:text-xs font-black tracking-widest py-1 select-none text-slate-400 uppercase"
           >
             {dayName}
           </div>
@@ -303,19 +296,19 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
           const dayEvents = events.filter((e) => e.date === cell.dateStr);
           const hasEvents = dayEvents.length > 0;
 
-          // Clases de estilo para las rachas conectadas
+          // Clases de estilo para los períodos continuos de anticipación y calma (Paleta TEA)
           let streakBg = '';
           let streakRounded = '';
           if (streakInfo) {
             const { color } = streakInfo.streak;
             if (color === 'rose') {
-              streakBg = 'bg-[#fbcfe8]/70 text-rose-950'; // Rosa pastel como en la imagen
+              streakBg = 'bg-sky-100 text-sky-950 font-semibold'; // Anticipación y Transición
             } else if (color === 'lavender') {
-              streakBg = 'bg-[#e0e7ff]/80 text-indigo-950'; // Lavanda pastel
+              streakBg = 'bg-indigo-100 text-indigo-950 font-semibold'; // Sesiones de Terapia
             } else if (color === 'teal') {
-              streakBg = 'bg-[#ccfbf1]/80 text-teal-950';
+              streakBg = 'bg-emerald-100 text-emerald-950 font-semibold'; // Calma y Regulación
             } else if (color === 'outlined') {
-              streakBg = 'border-2 border-rose-300 bg-rose-50/30 text-rose-900';
+              streakBg = 'border-2 border-amber-300 bg-amber-50/70 text-amber-950 font-semibold';
             }
 
             if (streakInfo.isSingle) {
@@ -334,7 +327,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
               key={`${cell.dateStr}-${index}`}
               className="relative h-11 sm:h-14 flex items-center justify-center"
             >
-              {/* Franja de racha continua de fondo (Pill Streak) */}
+              {/* Franja de período continuo de anticipación (Pill Streak) */}
               {streakInfo && (
                 <div
                   className={`absolute inset-y-1 sm:inset-y-1.5 z-0 transition-all ${streakBg} ${streakRounded} ${
@@ -346,7 +339,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
 
               {/* Contenido de la celda del día */}
               {flowerBadge ? (
-                /* Insignia floral scalloped especial (como día 14 de la imagen) */
+                /* Insignia neuroafirmativa destacada */
                 <ScallopedFlowerBadge
                   day={cell.dateNumber}
                   label={flowerBadge.label}
@@ -363,7 +356,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                       ? 'text-slate-300 hover:text-slate-500'
                       : isSelected
                       ? 'bg-slate-900 text-white shadow-lg scale-105 ring-2 ring-slate-900 ring-offset-2'
-                      : 'text-slate-700 hover:bg-white/60 active:scale-95'
+                      : 'text-slate-700 hover:bg-slate-100 active:scale-95'
                   }`}
                   aria-label={`Día ${cell.dateNumber}`}
                 >
@@ -382,7 +375,7 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-sm" title="Sesión / Evento" />
                       )}
                       {hasSomatic && !hasObservations && !hasAbc && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-sm" title="Registro somático" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm" title="Registro de bienestar" />
                       )}
                     </div>
                   )}
@@ -394,39 +387,39 @@ export const CalendarMonthView: React.FC<CalendarMonthViewProps> = ({
       </div>
 
       {/* Leyenda interactiva de colores y patrones integrados */}
-      <div className="mt-6 pt-4 border-t border-rose-200/40 space-y-2">
+      <div className="mt-6 pt-4 border-t border-slate-100 space-y-2">
         <div className="flex items-center justify-between text-xs text-slate-500 mb-2 font-bold">
-          <span>Patrones y Seguimiento del Mes:</span>
+          <span>Anticipación y Seguimiento del Mes:</span>
           {onOpenNewEventModal && (
             <button
               onClick={() => onOpenNewEventModal(selectedDateStr)}
-              className="text-purple-600 hover:text-purple-700 flex items-center gap-1 font-black"
+              className="text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-black"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Añadir Evento o Racha</span>
+              <span>Añadir Evento o Período</span>
             </button>
           )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] sm:text-[11px] font-bold">
-          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+          <div className="flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/70">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0" />
-            <span className="text-slate-700 truncate">Observaciones</span>
+            <span className="text-slate-700 truncate">Evolución</span>
           </div>
 
-          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+          <div className="flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/70">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
             <span className="text-slate-700 truncate">Registros ABC</span>
           </div>
 
-          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
+          <div className="flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/70">
             <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
-            <span className="text-slate-700 truncate">Eventos / Sesiones</span>
+            <span className="text-slate-700 truncate">Sesiones / Agenda</span>
           </div>
 
-          <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/60 border border-slate-100">
-            <span className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0" />
-            <span className="text-slate-700 truncate">Factores Somáticos</span>
+          <div className="flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/70">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+            <span className="text-slate-700 truncate">Calma / Sensorial</span>
           </div>
         </div>
       </div>

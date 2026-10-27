@@ -11,44 +11,48 @@ interface ScallopedFlowerBadgeProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
+/**
+ * Insignia Neuroafirmativa para el Calendario TEA.
+ * Destaca sesiones de terapia, hitos de logro y anticipación estructurada.
+ */
 export const ScallopedFlowerBadge: React.FC<ScallopedFlowerBadgeProps> = ({
   day,
   label = 'TERAPIA',
-  color = 'purple',
+  color = 'indigo',
   onClick,
   className = '',
   size = 'md',
 }) => {
-  // Configuración de gradientes según el color
+  // Paleta neuroafirmativa armónica con el resto de módulos
   const colorGradients = {
-    purple: {
-      from: '#9d8df1',
-      to: '#7c67db',
-      shadow: 'rgba(124, 103, 219, 0.4)',
-    },
-    rose: {
-      from: '#f472b6',
-      to: '#e11d48',
-      shadow: 'rgba(225, 29, 72, 0.35)',
-    },
-    teal: {
-      from: '#2dd4bf',
-      to: '#0d9488',
-      shadow: 'rgba(13, 148, 136, 0.35)',
-    },
     indigo: {
-      from: '#818cf8',
-      to: '#4f46e5',
+      from: '#6366f1',
+      to: '#4338ca',
       shadow: 'rgba(79, 70, 229, 0.35)',
     },
+    teal: {
+      from: '#10b981',
+      to: '#059669',
+      shadow: 'rgba(16, 185, 129, 0.35)',
+    },
     amber: {
-      from: '#fbbf24',
+      from: '#f59e0b',
       to: '#d97706',
-      shadow: 'rgba(217, 119, 6, 0.35)',
+      shadow: 'rgba(245, 158, 11, 0.35)',
+    },
+    purple: {
+      from: '#8b5cf6',
+      to: '#6d28d9',
+      shadow: 'rgba(139, 92, 246, 0.35)',
+    },
+    rose: {
+      from: '#0ea5e9',
+      to: '#0284c7', // Adaptado a azul cielo para anticipación y calma visual
+      shadow: 'rgba(14, 165, 233, 0.35)',
     },
   };
 
-  const currentTheme = colorGradients[color] || colorGradients.purple;
+  const currentTheme = colorGradients[color] || colorGradients.indigo;
 
   const sizeClasses = {
     sm: 'w-10 h-10 sm:w-14 sm:h-14',
@@ -60,7 +64,7 @@ export const ScallopedFlowerBadge: React.FC<ScallopedFlowerBadgeProps> = ({
     <div
       onClick={onClick}
       className={`relative inline-flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-105 active:scale-95 z-20 ${sizeClasses[size]} ${className}`}
-      style={{ filter: `drop-shadow(0 6px 12px ${currentTheme.shadow})` }}
+      style={{ filter: `drop-shadow(0 6px 14px ${currentTheme.shadow})` }}
       title={`${label} - Día ${day}`}
     >
       <svg
@@ -69,42 +73,35 @@ export const ScallopedFlowerBadge: React.FC<ScallopedFlowerBadgeProps> = ({
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <linearGradient id={`flower-grad-${color}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`tea-badge-grad-${color}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={currentTheme.from} />
             <stop offset="100%" stopColor={currentTheme.to} />
           </linearGradient>
-          {/* Sombra blanca externa como en el diseño de referencia */}
           <filter id="badge-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#ffffff" floodOpacity="0.8" />
+            <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#ffffff" floodOpacity="0.8" />
           </filter>
         </defs>
 
-        {/* Flor con 6 pétalos suaves y redondeados */}
-        <path
-          d="
-            M 50,12
-            C 58,12 65,18 69,25
-            C 77,23 85,29 86,37
-            C 92,42 94,52 90,60
-            C 91,69 84,77 76,79
-            C 72,86 63,90 55,89
-            C 47,91 38,87 33,81
-            C 25,81 18,74 17,66
-            C 11,60 11,50 16,42
-            C 14,34 20,26 29,24
-            C 33,17 41,12 50,12 Z
-          "
-          fill={`url(#flower-grad-${color})`}
+        {/* Ficha / Insignia redondeada neuroafirmativa con contorno suave y accesible */}
+        <rect
+          x="8"
+          y="8"
+          width="84"
+          height="84"
+          rx="26"
+          fill={`url(#tea-badge-grad-${color})`}
           stroke="#ffffff"
           strokeWidth="3.5"
           strokeLinejoin="round"
-          strokeLinecap="round"
         />
 
-        {/* Etiqueta superior en mayúsculas pequeñas */}
+        {/* Ícono de estrella o hito de anticipación sutil */}
+        <circle cx="50" cy="24" r="3.5" fill="#ffffff" opacity="0.95" />
+
+        {/* Etiqueta superior en mayúsculas claras */}
         <text
           x="50"
-          y="42"
+          y="44"
           textAnchor="middle"
           fill="#ffffff"
           fontSize="9.5"
@@ -115,10 +112,10 @@ export const ScallopedFlowerBadge: React.FC<ScallopedFlowerBadgeProps> = ({
           {label.length > 9 ? label.substring(0, 8) + '…' : label}
         </text>
 
-        {/* Número de día grande y en negrita */}
+        {/* Número de día en negrita y tipografía limpia */}
         <text
           x="50"
-          y="69"
+          y="73"
           textAnchor="middle"
           fill="#ffffff"
           fontSize="24"
